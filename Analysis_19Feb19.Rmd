@@ -67,9 +67,9 @@ datatable(Lead_Data)
 
 ## Using linear equation to fit the intensity and concentration data
 
-Using a linear equation in the form $I(\lambda) = mC(\lambda)+ b$, where $I(\lambda)$ and $C(\lambda)$ are respectively the mean intensity and the theoretical concentration (i.e. 0, 100, 1000, 10000, and 100000 ppm) at each of the wavelength $\lambda_i$, we estimate the slope $m$ and $R^2$ values in order to determine the correct calibration curve. the code below were use in R to perform the calculation. 
+Using a linear equation in the form $I(\lambda) = mC(\lambda)+ b$, where $I(\lambda)$ and $C(\lambda)$ are respectively the mean intensity and the theoretical concentration (i.e. 0, 100, 1000, 10000, and 100000 ppm) at each of the wavelength $\lambda_i$, we estimate the slope $m$ and $R^2$ values in order to determine the correct calibration curve. the code below were used in R to perform the calculation. 
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 L <- length(Lead_Data[,1])# length of the intensity data
 
@@ -91,12 +91,12 @@ for (i in 1:L){
 
 ```
 
-## Estimating the conetration for a reference soil using the linear model 
+## Estimating the concentration for a reference soil using the linear model 
 
 We continue our analysis using the inverse linear model from the previous section to estimate the concentration. This can be done by doing $C(\lambda_i) = \frac{I(\lambda_i) - b(\lambda_i)}{m(\lambda_i)}$. Moreover, we calculate the average of the nine shots of the reference soils by assuming any intensity value less than 0 is equal to 0. Then, the intensity of these mean reference soil were utilized to estimate the concentration at each wavelength $\lambda$. The following R code were used to conduct these analysis over the entire spectrum.
 
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
 Wavelength <- Lead_Data[,1] # extract the wavelength from our data table
 Soil_B1 <- CRREL_Soil$B1 # reference soil 
 
@@ -116,7 +116,7 @@ datatable(Coeff)
 
 Now a visual illustration of the $R^2$ value with respect to the wavelength shows how the linear accuracy is changing with respect to wavelength.
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=7, fig.width=20}
+```{r, echo=TRUE, warning=FALSE, message=FALSE, fig.height=7, fig.width=20}
 ######################################################
 black.bold.text1 <- element_text(face = "bold", color = "black",size=26) # x and y axis
 black.bold.text2 <- element_text(face = "bold", color = "black",size=22) # title
