@@ -91,7 +91,7 @@ for (i in 1:L){
 
 ```
 
-## Estimating the conetration for a reference soil using the linear model 
+## Estimating the concentration for a reference soil using the linear model 
 
 We continue our analysis using the inverse linear model from the previous section to estimate the concentration. This can be done by doing $C(\lambda_i) = \frac{I(\lambda_i) - b(\lambda_i)}{m(\lambda_i)}$. Moreover, we calculate the average of the nine shots of the reference soils by assuming any intensity value less than 0 is equal to 0. Then, the intensity of these mean reference soil were utilized to estimate the concentration at each wavelength $\lambda$. The following R code were used to conduct these analysis over the entire spectrum.
 
