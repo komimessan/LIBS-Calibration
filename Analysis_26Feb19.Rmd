@@ -1,0 +1,105 @@
+---
+title: "LIBS Calibration Curve"
+author: "Komi Messan"
+date: "February 26, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# All packages needed
+library(rJava)
+library(xlsx)
+library(xlsxjars)
+library(ggplot2)
+library(cowplot)
+library(latex2exp)
+library(DT) # for datatable
+library(pls)  # For Principal Component Regression (PCR) and Partial Least Squares Regression (PLSR)
+library(devtools)
+library(ggbiplot)
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#Read in data
+Raw_lead100 <- read.xlsx("Lead_raw_100_ppm.xlsx", sheetName="Sheet1", header = TRUE,stringsAsFactors = F)
+Lead_Data <- read.xlsx("Lead_all_averages.xlsx", sheetName="Lead", header = TRUE,stringsAsFactors = F)
+CRREL_Soil <- read.xlsx("Lead_all_averages.xlsx", sheetName="CRREL Soils", header = TRUE,stringsAsFactors = F)
+Concentration <- c(0,100,1000,10000,100000)
+```
+
+
+# Lead data visualization 
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE, fig.height=25, fig.width=20}
+# plot The LIBS Spectra at different concentration
+
+Intensity <- c(Lead_Data$Lead_0_ppm, Lead_Data$Lead_100_ppm, Lead_Data$Lead_1000_ppm, Lead_Data$Lead_10000_ppm, Lead_Data$Lead_100000_ppm)
+#Conc <- c(rep(0,12288), rep(100,12288),rep(1000,12288), rep(10000,12288),rep(100000,12288))
+Conc <- c(rep("Concentration = 0 ppm",12288),
+                          rep("Concentration = 100 ppm",12288),
+                          rep("Concentration = 1000 ppm",12288),
+                          rep("Concentration = 10000 ppm",12288),
+                          rep("Concentration = 100000 ppm",12288))
+Wavelength <- rep(Lead_Data$Wavelength,5)
+
+Lead <- data.frame(Wavelength, Intensity,Conc)
+
+head(Lead)
+
+
+######################################################
+black.bold.text1 <- element_text(face = "bold", color = "black",size=26) # x and y axis
+black.bold.text2 <- element_text(face = "bold", color = "black",size=22) # title
+
+p<-theme(axis.text.x = element_text(face="bold", color="black", size=22),
+         axis.text.y = element_text(face="bold", color="black", size=22),
+         title=black.bold.text2,axis.title = black.bold.text1, legend.position = "bottom",
+         legend.text = element_text(size=24),strip.text.x = element_text(face="bold",size=22))
+##############################################################
+
+ggplot(data = Lead, aes(x = Wavelength, y = Intensity)) +
+  geom_line(size = 0.8) + theme_bw() +
+  facet_wrap(~Conc,nrow = 5, ncol = 1)+ 
+  xlab("Wavelength (nm)") +
+  ylab("Intensity (A.U.)") + p
+
+```
+
+# Pinciple Component Analysis of the data
+
+We continue the analysis by doing a principle component analysis (PCA) in order to determine if there exist any significant differences in the elemental composition of the five level of lead concentration (i.e. 0, 100, 1000, 10000, and 100000). Our analysis in R follow description described in [following page](https://www.datacamp.com/community/tutorials/pca-analysis-r).
+
+
+```{r}
+Lead.pca <- prcomp(Lead_Data[,2:6], center = TRUE, scale. = TRUE)
+
+
+summary(Lead.pca)
+
+```
+
+
+Data is now transpose and we add a new column called concentration so we can later do analysis. Analysis will be conducted using partial least square regression from the work of Bjørn-Helge Mevik, 2018 which can be found [here](https://cran.r-project.org/web/packages/pls/vignettes/pls-manual.pdf).
+
+
+```{r}
+mean_data <- t(Lead_Data)
+colnames(mean_data) <- mean_data[1,] # make first row to be the column names
+mean_data <- mean_data[-1,] # remove the row with wavelength
+mean_data <- data.frame(Concentration, mean_data) # add the concentration column
+
+head(mean_data[,1:4])
+```
+
+
+
+
+
+
