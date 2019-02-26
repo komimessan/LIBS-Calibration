@@ -83,6 +83,13 @@ Lead.pca <- prcomp(Lead_Data[,2:6], center = TRUE, scale. = TRUE)
 
 summary(Lead.pca)
 
+ggbiplot(Lead.pca) # visualize the PCA
+
+```
+
+
+```{r}
+ggbiplot(Lead.pca, ellipse = TRUE, groups = Conc) # visualize the PCA
 ```
 
 
