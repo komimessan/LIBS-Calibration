@@ -22,20 +22,26 @@ library(DT) # for datatable
 library(pls)  # For Principal Component Regression (PCR) and Partial Least Squares Regression (PLSR)
 library(devtools)
 library(ggbiplot)
-```
-
-
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-#Read in data
-Raw_lead100 <- read.xlsx("Lead_raw_100_ppm.xlsx", sheetName="Sheet1", header = TRUE,stringsAsFactors = F)
-Lead_Data <- read.xlsx("Lead_all_averages.xlsx", sheetName="Lead", header = TRUE,stringsAsFactors = F)
-CRREL_Soil <- read.xlsx("Lead_all_averages.xlsx", sheetName="CRREL Soils", header = TRUE,stringsAsFactors = F)
-Concentration <- c(0,100,1000,10000,100000)
+library(openxlsx)
 ```
 
 
 # Lead data visualization 
+
+## Exploring negative intensity as a zero
+
+Here we first assume that all negative intensities are zero prior to take the average of the nine LIBS shot.
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#Read in data
+Lead_Data <- openxlsx::read.xlsx("Lead_all_averages.xlsx", sheet="Lead", colNames = TRUE)
+#CRREL_Soil <- openxlsx::read.xlsx("Lead_all_averages.xlsx", sheet="CRREL Soils", colNames = TRUE)
+Concentration <- c(0,100,1000,10000,100000)
+```
+
+
+
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, fig.height=25, fig.width=20}
 # plot The LIBS Spectra at different concentration
@@ -72,12 +78,12 @@ ggplot(data = Lead, aes(x = Wavelength, y = Intensity)) +
 
 ```
 
-# Pinciple Component Analysis of the data
+### Pinciple Component Analysis of the data
 
 We continue the analysis by doing a principle component analysis (PCA) in order to determine if there exist any significant differences in the elemental composition of the five level of lead concentration (i.e. 0, 100, 1000, 10000, and 100000). Our analysis in R follow description described in [following page](https://www.datacamp.com/community/tutorials/pca-analysis-r).
 
 
-```{r}
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
 Lead.pca <- prcomp(Lead_Data[,2:6], center = TRUE, scale. = TRUE)
 
 
@@ -88,9 +94,80 @@ ggbiplot(Lead.pca) # visualize the PCA
 ```
 
 
-```{r}
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
 ggbiplot(Lead.pca, ellipse = TRUE, groups = Conc) # visualize the PCA
 ```
+
+## Exploring negative intensity as missing 
+
+In what follow, we continue analysis by looking at all negative intensity as a missing value.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#Read in raw data
+
+Raw_lead_0 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_0_ppm", colNames = TRUE)
+Raw_lead_100 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_100_ppm", colNames = TRUE)
+Raw_lead_1000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_1000_ppm", colNames = TRUE)
+Raw_lead_10000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_10000_ppm", colNames = TRUE)
+Raw_lead_100000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_100000_ppm", colNames = TRUE)
+```
+
+ Now we calculate the average of each of the nine by only considering the positive values using the following function
+ 
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+average <- function(Raw_data){
+  isPositive <- function(x) x>=0 # function to extract the positive value
+  n <- dim(Raw_data)[1] # find the length of the data
+  (v <- rep(NA, n)) # create an empty vector of length n
+  for (i in 1:n){
+    v[i] <- mean(Filter(isPositive, as.numeric(Raw_data[i,-1])))
+  }
+  v[is.na(v)] <- 0
+   return(v)
+}
+
+mean_lead_0 <- average(Raw_lead_0)
+mean_lead_100 <- average(Raw_lead_100)
+mean_lead_1000 <- average(Raw_lead_1000)
+mean_lead_10000 <- average(Raw_lead_10000)
+mean_lead_100000 <- average(Raw_lead_100000)
+
+Lead_Data_mval <- data.frame(Lead_Data$Wavelength, mean_lead_0, mean_lead_100,
+                             mean_lead_1000, mean_lead_10000, 
+                             mean_lead_100000)
+
+Intensity_mval <- c(mean_lead_0,mean_lead_100, mean_lead_1000, mean_lead_10000, mean_lead_100000)
+Lead_mval <- data.frame(Wavelength, Intensity_mval,Conc) # Wavelength and Conc are in previous block code
+
+```
+ 
+ 
+ 
+```{r, echo=TRUE, warning=FALSE, message=FALSE, fig.height=25, fig.width=20}
+# plot The LIBS Spectra at different concentration
+
+ggplot(data = Lead_mval, aes(x = Wavelength, y = Intensity_mval)) +
+  geom_line(size = 0.8) + theme_bw() +
+  facet_wrap(~Conc,nrow = 5, ncol = 1)+ 
+  xlab("Wavelength (nm)") +
+  ylab("Intensity (A.U.)") + p
+
+```
+
+
+ 
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+Lead_mval.pca <- prcomp(Lead_Data_mval[,2:6], center = TRUE, scale. = TRUE)
+
+
+ggbiplot(Lead_mval.pca) # visualize the PCA
+
+```
+
+
+
 
 
 Data is now transpose and we add a new column called concentration so we can later do analysis. Analysis will be conducted using partial least square regression from the work of Bjørn-Helge Mevik, 2018 which can be found [here](https://cran.r-project.org/web/packages/pls/vignettes/pls-manual.pdf).
