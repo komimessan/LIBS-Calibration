@@ -21,7 +21,8 @@ library(xlsxjars)
 library(ggplot2)
 library(cowplot)
 library(latex2exp)
-library(DT) # for datatable
+library(DT) # for datatable'
+library(openxlsx)
 ```
 
 # Our data
@@ -32,9 +33,9 @@ Firs we illustrate the form of the raw data containing the soil certified refere
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 #Read in data
-Raw_lead100 <- read.xlsx("Lead_raw_100_ppm.xlsx", sheetName="Sheet1", header = TRUE,stringsAsFactors = F)
-Lead_Data <- read.xlsx("Lead_all_averages.xlsx", sheetName="Lead", header = TRUE,stringsAsFactors = F)
-CRREL_Soil <- read.xlsx("Lead_all_averages.xlsx", sheetName="CRREL Soils", header = TRUE,stringsAsFactors = F)
+Raw_lead100 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_100_ppm", colNames = TRUE)
+Lead_Data <- openxlsx::read.xlsx("Lead_all_averages.xlsx", sheet="Lead", colNames = TRUE)
+CRREL_Soil <- openxlsx::read.xlsx("Lead_all_averages.xlsx", sheet="CRREL Soils", colNames = TRUE)
 Concentration <- c(0,100,1000,10000,100000)
 ```
 
@@ -48,7 +49,7 @@ In the table above, the first column represent the wavelength value while the co
 
 ```{r,echo=FALSE, warning=FALSE, message=FALSE}
 library("openxlsx")
-lead100 <- read.xlsx("Lead_100_ppm.xlsx", sheet="Lead_100_ppm_average", colNames = TRUE)
+lead100 <- openxlsx::read.xlsx("Lead_100_ppm.xlsx", sheet="Lead_100_ppm_average", colNames = TRUE)
 
 ```
 
@@ -146,3 +147,7 @@ We could noticed that several of the estimated concentration were negative, indi
     - What does negative intensity value imply?
 * Is it alright to estimate the concentration at each wavelength or is it better to use the equation with the highest $R^2$ value to estimate concentration for all soils?
 * When mutltiple emission lines have a high $R^2$, what wavelength should be used to accurately estimate concentration for other reference soils
+
+To see more analysis on how I handled the negative intensities, go to the following [page](https://komimessan.github.io/LIBS-Calibration/Analysis_26Feb19.html)
+
+

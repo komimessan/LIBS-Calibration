@@ -94,11 +94,6 @@ ggbiplot(Lead.pca) # visualize the PCA
 ```
 
 
-
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-ggbiplot(Lead.pca, ellipse = TRUE, groups = Conc) # visualize the PCA
-```
-
 ## Exploring negative intensity as missing 
 
 In what follow, we continue analysis by looking at all negative intensity as a missing value.
@@ -150,7 +145,7 @@ Lead_mval <- data.frame(Wavelength, Intensity_mval,Conc) # Wavelength and Conc a
 
 ggplot(data = Lead_mval, aes(x = Wavelength, y = Intensity_mval)) +
   geom_line(size = 0.8) + theme_bw() +
-  facet_wrap(~Conc,nrow = 5, ncol = 1)+ 
+  facet_wrap(~Conc,nrow = 5, ncol = 1)+
   xlab("Wavelength (nm)") +
   ylab("Intensity (A.U.)") + p
 
@@ -174,13 +169,38 @@ Data is now transpose and we add a new column called concentration so we can lat
 
 
 ```{r}
-mean_data <- t(Lead_Data)
-colnames(mean_data) <- mean_data[1,] # make first row to be the column names
-mean_data <- mean_data[-1,] # remove the row with wavelength
-mean_data <- data.frame(Concentration, mean_data) # add the concentration column
+Lead_Data_mval <- data.frame(Lead_Data$Wavelength,mean_lead_0,mean_lead_100,
+                             mean_lead_1000, mean_lead_10000,
+                             mean_lead_100000)
+colnames(Lead_Data_mval) <- c("Wavelength","Lead_0_ppm","Lead_100_ppm",
+                              "Lead_1000_ppm","Lead_10000_ppm",
+                              "Lead_100000_ppm")
 
-head(mean_data[,1:4])
+mean_intensity <- t(Lead_Data_mval)
+cnames <- mean_intensity[1,]
+mean_intensity <- mean_intensity[-1,] # remove the row with wavelength
+mean_data_mval <- data.frame(Concentration, mean_intensity=I(mean_intensity)) # add the concentration column but in two different matrix form using I()
+colnames(mean_data_mval$mean_intensity) <- cnames # make first row to be the column name
+
+
+lead.plsr1 <- plsr(Concentration ~ mean_intensity, ncomp = 3, data = mean_data_mval, validation = "LOO")
+
+summary(lead.plsr1)
+
+plot(RMSEP(lead.plsr1), legendpos = "topright") #Root Mean Square Error of the Prediction
+
+ plot(lead.plsr1, ncomp = 2, asp = 1, line = TRUE)
+
+
+ plot(lead.plsr1, plottype = "scores", comps = 1:3)
+ 
+ plot(lead.plsr1, "loadings", comps = 1:2, legendpos = "topleft",
+      labels = "numbers", xlab = "nm")
+ abline(h = 0)
 ```
+
+
+
 
 
 
