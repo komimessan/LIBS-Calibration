@@ -149,7 +149,7 @@ We could noticed that several of the estimated concentration were negative, indi
     - What does negative intensity value imply?
         + They imply error coming from the instrument and nothing more
 * Is it alright to estimate the concentration at each wavelength or is it better to use the equation with the highest $R^2$ value to estimate concentration for all soils?
-    - Equation with the highest $R^2$ should not be used. One need to check element values from the database to confirm this
+    - Equation with the highest $R^2$ should not be used. One need to check element values from the NIST database to confirm this. See example of lead in the NIST database on this [page](https://physics.nist.gov/PhysRefData/Handbook/Tables/leadtable2.htm)
 * When mutltiple emission lines have a high $R^2$, what wavelength should be used to accurately estimate concentration for other reference soils
     - Check database
 
