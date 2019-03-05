@@ -1,5 +1,5 @@
 ---
-title: "LIBS Calibration curve"
+title: "Univariate LIBS Calibration curve"
 author: "Komi Messan"
 date: "March 5, 2019"
 output: html_document
@@ -29,7 +29,7 @@ library(openxlsx)
 ```
 
 
-# Lead data visualization 
+# Analysis on Lead data
 
 ## Handling the negative intensities 
 
@@ -165,4 +165,71 @@ cali_plot_pb <- ggplot(lead_uni_data, aes(x=Concentration, y=Mean_I)) +
 cali_plot_pb
 
 ```
+
+
+# Analysis on zinc data
+
+## Handling the negative intensities
+
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#Read in raw data
+
+Raw_zinc_0 <- openxlsx::read.xlsx("Zinc_raw_data.xlsx", sheet="zinc_0_ppm", colNames = TRUE)
+Raw_zinc_100 <- openxlsx::read.xlsx("Zinc_raw_data.xlsx", sheet="zinc_100_ppm", colNames = TRUE)
+Raw_zinc_250 <- openxlsx::read.xlsx("Zinc_raw_data.xlsx", sheet="zinc_250_ppm", colNames = TRUE)
+Raw_zinc_500 <- openxlsx::read.xlsx("Zinc_raw_data.xlsx", sheet="zinc_500_ppm", colNames = TRUE)
+Raw_zinc_1000 <- openxlsx::read.xlsx("Zinc_raw_data.xlsx", sheet="zinc_1000_ppm", colNames = TRUE)
+```
+
+Now we take the average of all the nine positive shots by considering only the positive intensities
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Take the average of all nine LIBS shots
+mean_zinc_0 <- average(Raw_zinc_0)$v_m
+mean_zinc_100 <- average(Raw_zinc_100)$v_m
+mean_zinc_250 <- average(Raw_zinc_250)$v_m
+mean_zinc_500 <- average(Raw_zinc_500)$v_m
+mean_zinc_1000 <- average(Raw_zinc_1000)$v_m
+
+Zinc_Data_mval <- data.frame(Raw_zinc_0$Wavelength, mean_zinc_0,mean_zinc_100,
+                             mean_zinc_250, mean_zinc_500, 
+                             mean_zinc_1000)
+
+Zinc_Intensity_mval <- c(mean_zinc_0,mean_zinc_100, mean_zinc_250, mean_zinc_500, mean_lead_1000)
+
+Conc_zinc <- c(rep("Concentration = 0 ppm",12288),
+                          rep("Concentration = 100 ppm",12288),
+                          rep("Concentration = 250 ppm",12288),
+                          rep("Concentration = 500 ppm",12288),
+                          rep("Concentration = 1000 ppm",12288))
+Wavelength_zinc <- rep(Raw_lead_0$Wavelength,5)
+
+Zinc_mval <- data.frame(Wavelength_zinc, Zinc_Intensity_mval,Conc_zinc) # Wavelength and Conc are in previous block code
+colnames(Zinc_mval) <- c("Wavelength","Intensity","Conc")
+
+```
+
+
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10, fig.width=8}
+
+# Zinc_mval[which(Zinc_mval$Wavelength>330 & Zinc_mval$Wavelength<331 & Zinc_mval$Conc=="Concentration = 0 ppm"),] # to check specific values
+
+Zinc_mval2 <- Zinc_mval[which(Zinc_mval$Wavelength>=200 & Zinc_mval$Wavelength<375),] # cut the wavelength at 720
+
+spec_plot_zn <- ggplot(data = Zinc_mval2, aes(x = Wavelength, y = Intensity)) +
+  geom_line(size = 0.8) + theme_bw() +
+  facet_wrap(~Conc,nrow = 5, ncol = 1, scales = "free_y")+
+  xlab("Wavelength (nm)") +
+  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(0,550,25)) +
+  scale_y_continuous(breaks=seq(0,10000,2000)) + p
+
+spec_plot_zn
+
+```
+
 
