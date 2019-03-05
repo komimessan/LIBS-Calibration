@@ -1,0 +1,168 @@
+---
+title: "LIBS Calibration curve"
+author: "Komi Messan"
+date: "March 5, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# All packages needed
+library(rJava)
+library(xlsx)
+library(xlsxjars)
+library(ggplot2)
+library(cowplot)
+library(latex2exp)
+library(DT) # for datatable
+library(pls)  # For Principal Component Regression (PCR) and Partial Least Squares Regression (PLSR)
+library(devtools)
+library(ggbiplot)
+library(openxlsx)
+#library(plotly)
+#library(tidyverse)
+```
+
+
+# Lead data visualization 
+
+## Handling the negative intensities 
+
+It is noteworthy to point out that several intensities values are negative due to noises in the data. To process this data, all negative intensities values were treating as missing values in the remaining of the analysis. Thus we have baseline of 0 for the intensities value.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#Read in raw data
+
+Raw_lead_0 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_0_ppm", colNames = TRUE)
+Raw_lead_100 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_100_ppm", colNames = TRUE)
+Raw_lead_1000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_1000_ppm", colNames = TRUE)
+Raw_lead_10000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_10000_ppm", colNames = TRUE)
+Raw_lead_100000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_100000_ppm", colNames = TRUE)
+```
+
+The average of each of the nine shots were taken by only considering the positive values using the following function
+ 
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+average <- function(Raw_data){
+  isPositive <- function(x) x>=0 # function to extract the positive value
+  se <- function(x) sqrt(var(x)/length(x)) # standard error
+  n <- dim(Raw_data)[1] # find the length of the data
+  (v_m <- rep(NA, n)) # create an empty vector of length n for the mean
+  (v_sd <- rep(NA, n)) # create an empty vector of length n for the sd
+  
+  for (i in 1:n){
+    v_m[i] <- mean(Filter(isPositive, as.numeric(Raw_data[i,-1])))
+    v_sd[i] <- sd(Filter(isPositive, as.numeric(Raw_data[i,-1])))
+  }
+  v_m[is.na(v_m)] <- 0
+  v_sd[is.na(v_sd)] <- 0
+   return(data.frame(v_m,v_sd))
+}
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Take the average of all nine LIBS shots
+mean_lead_0 <- average(Raw_lead_0)$v_m
+mean_lead_100 <- average(Raw_lead_100)$v_m
+mean_lead_1000 <- average(Raw_lead_1000)$v_m
+mean_lead_10000 <- average(Raw_lead_10000)$v_m
+mean_lead_100000 <- average(Raw_lead_100000)$v_m
+
+Lead_Data_mval <- data.frame(Raw_lead_0$Wavelength, mean_lead_0,mean_lead_100,
+                             mean_lead_1000, mean_lead_10000, 
+                             mean_lead_100000)
+
+Intensity_mval <- c(mean_lead_0,mean_lead_100, mean_lead_1000, mean_lead_10000, mean_lead_100000)
+
+Conc <- c(rep("Concentration = 0 ppm",12288),
+                          rep("Concentration = 100 ppm",12288),
+                          rep("Concentration = 1000 ppm",12288),
+                          rep("Concentration = 10000 ppm",12288),
+                          rep("Concentration = 100000 ppm",12288))
+Wavelength <- rep(Raw_lead_0$Wavelength,5)
+
+Lead_mval <- data.frame(Wavelength, Intensity_mval,Conc) # Wavelength and Conc are in previous block code
+
+```
+ 
+ 
+ 
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10, fig.width=8}
+# plot The LIBS Spectra at different concentration
+
+black.bold.text1 <- element_text(face = "bold", color = "black",size=18) # x and y axis
+black.bold.text2 <- element_text(face = "bold", color = "black",size=18) # title
+
+p<-theme(axis.text.x = element_text(face="bold", color="black", size=16),
+         axis.text.y = element_text(face="bold", color="black", size=16),
+         title=black.bold.text2,axis.title = black.bold.text1, legend.position = "bottom",
+         legend.text = element_text(size=18),strip.text.x = element_text(face="bold",size=18))
+
+# Lead_mval[which(Lead_mval$Wavelength>280.1 & Lead_mval$Wavelength<280.2 & Lead_mval$Conc=="Concentration = 0 ppm"),] # to check specific values
+Lead_mval2 <- Lead_mval[which(Lead_mval$Wavelength>=200 & Lead_mval$Wavelength<375),] # cut the wavelength at 720
+
+#Lead_mval2 <- Lead_mval[which(Lead_mval$Wavelength>=280 & Lead_mval$Wavelength<285),] 
+spec_plot_pb <- ggplot(data = Lead_mval2, aes(x = Wavelength, y = Intensity_mval)) +
+  geom_line(size = 0.8) + theme_bw() +
+  facet_wrap(~Conc,nrow = 5, ncol = 1, scales = "free_y")+
+  xlab("Wavelength (nm)") +
+  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(0,550,25)) +
+  scale_y_continuous(breaks=seq(0,14000,2000)) + p
+
+spec_plot_pb
+```
+
+## Calibration curve for lead at 280.2 nm
+
+From the access to the National Institute of Standards and Technology (NIST) atomic emission spectrum database, the higher intensity of lead (Pb) occurs at 280.1995 which is approximately equal to 280.2 thus we select 280.249 for our univariate analysis. 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5, fig.width=8}
+# calculate the mean and standard error for the univariate analysis
+
+m_lead_0 <- average(Raw_lead_0[(Raw_lead_0$Wavelength==280.249),])$v_m
+m_lead_100 <- average(Raw_lead_100[(Raw_lead_100$Wavelength==280.249),])$v_m
+m_lead_1000 <- average(Raw_lead_1000[(Raw_lead_1000$Wavelength==280.249),])$v_m
+m_lead_10000 <- average(Raw_lead_10000[(Raw_lead_10000$Wavelength==280.249),])$v_m
+m_lead_100000 <- average(Raw_lead_100000[(Raw_lead_100000$Wavelength==280.249),])$v_m
+
+
+sd_lead_0 <- average(Raw_lead_0[(Raw_lead_0$Wavelength==280.249),])$v_sd
+sd_lead_100 <- average(Raw_lead_100[(Raw_lead_100$Wavelength==280.249),])$v_sd
+sd_lead_1000 <- average(Raw_lead_1000[(Raw_lead_1000$Wavelength==280.249),])$v_sd
+sd_lead_10000 <- average(Raw_lead_10000[(Raw_lead_10000$Wavelength==280.249),])$v_sd
+sd_lead_100000 <- average(Raw_lead_100000[(Raw_lead_100000$Wavelength==280.249),])$v_sd
+
+lead_uni_data <- data.frame(c(m_lead_0,m_lead_100,m_lead_1000,
+                              m_lead_10000,m_lead_100000),
+                            c(sd_lead_0,sd_lead_100,sd_lead_1000,
+                              sd_lead_10000,sd_lead_100000),
+                            c(1,100,1000,10000,100000))
+colnames(lead_uni_data) <- c("Mean_I","sd","Concentration")
+
+## Plotting
+
+fit_lead <- lm(Mean_I~Concentration, data = lead_uni_data) # Rsquare = 0.553
+
+cali_plot_pb <- ggplot(lead_uni_data, aes(x=Concentration, y=Mean_I)) +
+  geom_point(size=2) +
+  geom_errorbar(aes(ymin=Mean_I-sd, ymax=Mean_I+sd), colour="black") +
+  scale_x_log10(label= comma) +
+  stat_smooth(method = "lm", col = "red", se= FALSE) +
+  xlab("Log(concentration of Pb at 280.2 nm in ppm)") +
+  ylab("Intensity (a.u.)") +
+  geom_label(x=0.5, y=500, label="Adj R2 = 0.55291") + 
+  theme_bw() + p
+
+cali_plot_pb
+
+```
+

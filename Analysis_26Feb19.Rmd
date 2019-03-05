@@ -23,6 +23,7 @@ library(pls)  # For Principal Component Regression (PCR) and Partial Least Squar
 library(devtools)
 library(ggbiplot)
 library(openxlsx)
+library(plotly)
 ```
 
 
