@@ -200,11 +200,16 @@ Zinc_Data_mval <- data.frame(Raw_zinc_0$Wavelength, mean_zinc_0,mean_zinc_100,
 
 Zinc_Intensity_mval <- c(mean_zinc_0,mean_zinc_100, mean_zinc_250, mean_zinc_500, mean_lead_1000)
 
-Conc_zinc <- c(rep("Concentration = 0 ppm",12288),
+Conc_zinc <- factor(c(rep("Concentration = 0 ppm",12288),
                           rep("Concentration = 100 ppm",12288),
                           rep("Concentration = 250 ppm",12288),
                           rep("Concentration = 500 ppm",12288),
-                          rep("Concentration = 1000 ppm",12288))
+                          rep("Concentration = 1000 ppm",12288)),
+                    levels = c("Concentration = 0 ppm",
+                               "Concentration = 100 ppm",
+                               "Concentration = 250 ppm",
+                               "Concentration = 500 ppm",
+                               "Concentration = 1000 ppm"))
 Wavelength_zinc <- rep(Raw_lead_0$Wavelength,5)
 
 Zinc_mval <- data.frame(Wavelength_zinc, Zinc_Intensity_mval,Conc_zinc) # Wavelength and Conc are in previous block code
@@ -219,17 +224,68 @@ colnames(Zinc_mval) <- c("Wavelength","Intensity","Conc")
 
 # Zinc_mval[which(Zinc_mval$Wavelength>330 & Zinc_mval$Wavelength<331 & Zinc_mval$Conc=="Concentration = 0 ppm"),] # to check specific values
 
-Zinc_mval2 <- Zinc_mval[which(Zinc_mval$Wavelength>=200 & Zinc_mval$Wavelength<375),] # cut the wavelength at 720
+l_w <-220 # lowest value of wavelength to display
+u_w <-550 # upper value of wavelength to display
+  
+Zinc_mval2 <- Zinc_mval[which(Zinc_mval$Wavelength>=l_w & Zinc_mval$Wavelength<u_w),] # cut the wavelength at 720
 
 spec_plot_zn <- ggplot(data = Zinc_mval2, aes(x = Wavelength, y = Intensity)) +
   geom_line(size = 0.8) + theme_bw() +
   facet_wrap(~Conc,nrow = 5, ncol = 1, scales = "free_y")+
   xlab("Wavelength (nm)") +
-  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(0,550,25)) +
+  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(0,u_w,50)) +
   scale_y_continuous(breaks=seq(0,10000,2000)) + p
 
 spec_plot_zn
 
 ```
+
+
+## Calibration curve for zinc at 334.50134 nm
+
+From the access to the National Institute of Standards and Technology (NIST) atomic emission spectrum database, the higher intensity of zinc (Zn) occurs at 334.50134 which is approximately equal to 334.5 thus we select 334.534 for our univariate analysis. 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5, fig.width=8}
+# calculate the mean and standard error for the univariate analysis
+
+m_zinc_0 <- average(Raw_zinc_0[(Raw_zinc_0$Wavelength==334.534),])$v_m
+m_zinc_100 <- average(Raw_zinc_100[(Raw_zinc_100$Wavelength==334.534),])$v_m
+m_zinc_250 <- average(Raw_zinc_250[(Raw_zinc_250$Wavelength==334.534),])$v_m
+m_zinc_500 <- average(Raw_zinc_500[(Raw_zinc_500$Wavelength==334.534),])$v_m
+m_zinc_1000 <- average(Raw_zinc_1000[(Raw_zinc_1000$Wavelength==334.534),])$v_m
+
+
+sd_zinc_0 <- average(Raw_zinc_0[(Raw_zinc_0$Wavelength==334.534),])$v_sd
+sd_zinc_100 <- average(Raw_zinc_100[(Raw_zinc_100$Wavelength==334.534),])$v_sd
+sd_zinc_250 <- average(Raw_zinc_250[(Raw_zinc_250$Wavelength==334.534),])$v_sd
+sd_zinc_500 <- average(Raw_zinc_500[(Raw_zinc_500$Wavelength==334.534),])$v_sd
+sd_zinc_1000 <- average(Raw_zinc_1000[(Raw_zinc_1000$Wavelength==334.534),])$v_sd
+
+zinc_uni_data <- data.frame(c(m_zinc_0,m_zinc_100,m_zinc_250,
+                              m_zinc_500,m_zinc_1000),
+                            c(sd_zinc_0,sd_zinc_100,sd_zinc_250,
+                              sd_zinc_500,sd_zinc_1000),
+                            c(1,100,1000,10000,100000))
+colnames(zinc_uni_data) <- c("Mean_I","sd","Concentration")
+
+## Plotting
+
+fit_zinc <- lm(Mean_I~Concentration, data = zinc_uni_data) # Rsquare = 0.553
+
+cali_plot_zn <- ggplot(zinc_uni_data, aes(x=Concentration, y=Mean_I)) +
+  geom_point(size=2) +
+  geom_errorbar(aes(ymin=Mean_I-sd, ymax=Mean_I+sd), colour="black") +
+  scale_x_log10(label= comma) +
+  stat_smooth(method = "lm", col = "red", se= FALSE) +
+  xlab("concentration of Zn at 334.5 nm in ppm") +
+  ylab("Intensity (a.u.)") +
+  geom_label(x=0.2, y=200, label="Adj R2 = -0.31459") + 
+  theme_bw() + p
+
+cali_plot_zn
+
+```
+
+
 
 
