@@ -45,7 +45,7 @@ Raw_lead_10000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_10000_pp
 Raw_lead_100000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_100000_ppm", colNames = TRUE)
 ```
 
-The average of each of the nine shots were taken by only considering the positive values using the following function
+The average of each of the nine shots were taken by only considering the positive values using the following function and also function to calculate all Rsquare values
  
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -63,6 +63,32 @@ average <- function(Raw_data){
   v_m[is.na(v_m)] <- 0
   v_sd[is.na(v_sd)] <- 0
    return(data.frame(v_m,v_sd))
+}
+
+
+Rvalues <- function(Average_raw_data, concentration){
+  
+L <- length(Average_raw_data[,1])# length of the intensity data
+concentration <- concentration
+# create an empty vector for the slope, the intercept and Rsquare values
+slope <- numeric(0L)
+intercept <- numeric(0L)
+Rsquare <- numeric(0L)
+
+# Loop through the entire data and create a linear model where the mean intensity is the dependent variable and the theoretical concentration is the independent variable. 
+for (i in 1:L){
+  linear_relation <- lm(as.numeric(Tungsten_Data_mval[i,2:6])~concentration)
+  sum_relation <- summary(linear_relation)
+  
+  #extract coefficients from linear regression
+  slope <- c(slope,linear_relation$coefficients[2])
+  intercept <- c(intercept,linear_relation$coefficients[1])
+  Rsquare <- slope <- c(Rsquare,sum_relation$r.squared)
+}  
+  
+ result <- data.frame(Average_raw_data[,1], slope,intercept, Rsquare)
+ colnames(result) <- c("Wavelength","slope","intercept","Rsquare")
+ return(result)
 }
 
 ```
@@ -199,7 +225,7 @@ Zinc_Data_mval <- data.frame(Raw_zinc_0$Wavelength, mean_zinc_0,mean_zinc_100,
                              mean_zinc_250, mean_zinc_500, 
                              mean_zinc_1000)
 
-Zinc_Intensity_mval <- c(mean_zinc_0,mean_zinc_100, mean_zinc_250, mean_zinc_500, mean_lead_1000)
+Zinc_Intensity_mval <- c(mean_zinc_0,mean_zinc_100, mean_zinc_250, mean_zinc_500, mean_zinc_1000)
 
 Conc_zinc <- factor(c(rep("Concentration = 0 ppm",12288),
                           rep("Concentration = 100 ppm",12288),
@@ -223,9 +249,9 @@ colnames(Zinc_mval) <- c("Wavelength","Intensity","Conc")
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10, fig.width=8}
 
-# Zinc_mval[which(Zinc_mval$Wavelength>330 & Zinc_mval$Wavelength<331 & Zinc_mval$Conc=="Concentration = 0 ppm"),] # to check specific values
+# Zinc_mval[which(Zinc_mval$Wavelength>472 & Zinc_mval$Wavelength<472.8 & Zinc_mval$Conc=="Concentration = 0 ppm"),] # to check specific values
 
-l_w <-220 # lowest value of wavelength to display
+l_w <-230 # lowest value of wavelength to display
 u_w <-550 # upper value of wavelength to display
   
 Zinc_mval2 <- Zinc_mval[which(Zinc_mval$Wavelength>=l_w & Zinc_mval$Wavelength<u_w),] # cut the wavelength at 720
@@ -242,28 +268,36 @@ spec_plot_zn
 ```
 
 
-## Calibration curve for zinc at 334.50134 nm
+## Calibration curve for zinc at 492.40132 nm
 
-From the access to the National Institute of Standards and Technology (NIST) atomic emission spectrum database, the higher intensity of zinc (Zn) occurs at 334.50134 which is approximately equal to 334.5 thus we select 334.534 for our univariate analysis. 
+From the access to the National Institute of Standards and Technology (NIST) atomic emission spectrum database, the higher intensity of zinc (Zn) occurs at 492.40132 which is approximately equal to 492.4 thus we select 492.4 for our univariate analysis. 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5, fig.width=8}
 # calculate the mean and standard error for the univariate analysis
-lamb_zn <- 481.017 #rsqure = 0.3559
+#lamb_zn <- 481.017 #rsqure = 0.3559
 
-#lamb_zn <- 334.534
+#lamb_zn <- 472.140
 
-m_zinc_0 <- average(Raw_zinc_0[(Raw_zinc_0$Wavelength=lamb_zn),])$v_m
-m_zinc_100 <- average(Raw_zinc_100[(Raw_zinc_100$Wavelength=lamb_zn),])$v_m
-m_zinc_250 <- average(Raw_zinc_250[(Raw_zinc_250$Wavelength=lamb_zn),])$v_m
-m_zinc_500 <- average(Raw_zinc_500[(Raw_zinc_500$Wavelength=lamb_zn),])$v_m
-m_zinc_1000 <- average(Raw_zinc_1000[(Raw_zinc_1000$Wavelength=lamb_zn),])$v_m
+#R_zn <- Rvalues(Zinc_Data_mval,c(0,100,250,500,1000))
+
+# R_zn[which(R_zn$Wavelength>206 & R_zn$Wavelength<207),]
+# R_zn[which(R_zn$Rsquare>0.89 & R_zn$Rsquare<0.92 & R_zn$Wavelength<500),]
+
+lamb_zn <- 492.465
 
 
-sd_zinc_0 <- average(Raw_zinc_0[(Raw_zinc_0$Wavelength=lamb_zn),])$v_sd
-sd_zinc_100 <- average(Raw_zinc_100[(Raw_zinc_100$Wavelength=lamb_zn),])$v_sd
-sd_zinc_250 <- average(Raw_zinc_250[(Raw_zinc_250$Wavelength=lamb_zn),])$v_sd
-sd_zinc_500 <- average(Raw_zinc_500[(Raw_zinc_500$Wavelength=lamb_zn),])$v_sd
-sd_zinc_1000 <- average(Raw_zinc_1000[(Raw_zinc_1000$Wavelength=lamb_zn),])$v_sd
+m_zinc_0 <- average(Raw_zinc_0[(Raw_zinc_0$Wavelength==lamb_zn),])$v_m
+m_zinc_100 <- average(Raw_zinc_100[(Raw_zinc_100$Wavelength==lamb_zn),])$v_m
+m_zinc_250 <- average(Raw_zinc_250[(Raw_zinc_250$Wavelength==lamb_zn),])$v_m
+m_zinc_500 <- average(Raw_zinc_500[(Raw_zinc_500$Wavelength==lamb_zn),])$v_m
+m_zinc_1000 <- average(Raw_zinc_1000[(Raw_zinc_1000$Wavelength==lamb_zn),])$v_m
+
+
+sd_zinc_0 <- average(Raw_zinc_0[(Raw_zinc_0$Wavelength==lamb_zn),])$v_sd
+sd_zinc_100 <- average(Raw_zinc_100[(Raw_zinc_100$Wavelength==lamb_zn),])$v_sd
+sd_zinc_250 <- average(Raw_zinc_250[(Raw_zinc_250$Wavelength==lamb_zn),])$v_sd
+sd_zinc_500 <- average(Raw_zinc_500[(Raw_zinc_500$Wavelength==lamb_zn),])$v_sd
+sd_zinc_1000 <- average(Raw_zinc_1000[(Raw_zinc_1000$Wavelength==lamb_zn),])$v_sd
 
 zinc_uni_data <- data.frame(c(m_zinc_0,m_zinc_100,m_zinc_250,
                               m_zinc_500,m_zinc_1000),
@@ -275,16 +309,16 @@ colnames(zinc_uni_data) <- c("Mean_I","sd","Concentration")
 ## Plotting
 summary(lm(Mean_I~Concentration, data = zinc_uni_data))
 
-fit_zinc <- lm(Mean_I~Concentration, data = zinc_uni_data) # Rsquare = 0.0574
+fit_zinc <- lm(Mean_I~Concentration, data = zinc_uni_data) # Rsquare = 0.3459
 
 cali_plot_zn <- ggplot(zinc_uni_data, aes(x=Concentration, y=Mean_I)) +
   geom_point(size=2) +
   geom_errorbar(aes(ymin=Mean_I-sd, ymax=Mean_I+sd), colour="black") +
   scale_x_continuous(label= comma) +
   stat_smooth(method = "lm", col = "red", se= FALSE) +
-  xlab("concentration of Zn at 334.5 nm in ppm") +
+  xlab("concentration of Zn at 492.4 nm in ppm") +
   ylab("Intensity (a.u.)") +
-  geom_label(x=0.2, y=200, label="R = 0.7364") + 
+  geom_label(x=10, y=900, label="R = 0.3459") + 
   theme_bw() + p
 
 cali_plot_zn
@@ -292,5 +326,255 @@ cali_plot_zn
 ```
 
 
+
+
+# Analysis on Antimony (Sb) data
+
+## Handling the negative intensities
+
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#Read in raw data
+
+Raw_antimony_0 <- openxlsx::read.xlsx("Antimony_raw_data.xlsx", sheet="antimony_0_ppm", colNames = TRUE)
+Raw_antimony_100 <- openxlsx::read.xlsx("Antimony_raw_data.xlsx", sheet="antimony_100_ppm", colNames = TRUE)
+Raw_antimony_250 <- openxlsx::read.xlsx("Antimony_raw_data.xlsx", sheet="antimony_250_ppm", colNames = TRUE)
+Raw_antimony_500 <- openxlsx::read.xlsx("Antimony_raw_data.xlsx", sheet="antimony_500_ppm", colNames = TRUE)
+Raw_antimony_1000 <- openxlsx::read.xlsx("Antimony_raw_data.xlsx", sheet="antimony_1000_ppm", colNames = TRUE)
+```
+
+Now we take the average of all the nine positive shots by considering only the positive intensities
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Take the average of all nine LIBS shots
+mean_antimony_0 <- average(Raw_antimony_0)$v_m
+mean_antimony_100 <- average(Raw_antimony_100)$v_m
+mean_antimony_250 <- average(Raw_antimony_250)$v_m
+mean_antimony_500 <- average(Raw_antimony_500)$v_m
+mean_antimony_1000 <- average(Raw_antimony_1000)$v_m
+
+Antimony_Data_mval <- data.frame(Raw_antimony_0$Wavelength,mean_antimony_0,mean_antimony_100,mean_antimony_250,mean_antimony_500,mean_antimony_1000)
+
+Antimony_Intensity_mval <- c(mean_antimony_0,mean_antimony_100, mean_antimony_250, mean_antimony_500, mean_antimony_1000)
+
+Conc_antimony <- factor(c(rep("Concentration = 0 ppm",12288),
+                          rep("Concentration = 100 ppm",12288),
+                          rep("Concentration = 250 ppm",12288),
+                          rep("Concentration = 500 ppm",12288),
+                          rep("Concentration = 1000 ppm",12288)),
+                    levels = c("Concentration = 0 ppm",
+                               "Concentration = 100 ppm",
+                               "Concentration = 250 ppm",
+                               "Concentration = 500 ppm",
+                               "Concentration = 1000 ppm"))
+Wavelength_antimony <- rep(Raw_antimony_0$Wavelength,5)
+
+Antimony_mval <- data.frame(Wavelength_antimony, Antimony_Intensity_mval,Conc_antimony) # Wavelength and Conc are in previous block code
+colnames(Antimony_mval) <- c("Wavelength","Intensity","Conc")
+
+```
+
+
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10, fig.width=8}
+
+# Antimony_mval[which(Antimony_mval$Wavelength>231 & Antimony_mval$Wavelength<231.4 & Antimony_mval$Conc=="Concentration = 0 ppm"),] # to check specific values
+
+l_w <-230 # lowest value of wavelength to display
+u_w <-550 # upper value of wavelength to display
+  
+Antimony_mval2 <- Antimony_mval[which(Antimony_mval$Wavelength>=l_w & Antimony_mval$Wavelength<u_w),] # cut the wavelength at 720
+
+spec_plot_sb <- ggplot(data = Antimony_mval2, aes(x = Wavelength, y = Intensity))+
+  geom_line(size = 0.8) + theme_bw() +
+  facet_wrap(~Conc,nrow = 5, ncol = 1, scales = "free_y")+
+  xlab("Wavelength (nm)") +
+  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(0,u_w,50)) +
+  scale_y_continuous(breaks=seq(0,10000,2000)) + p
+
+spec_plot_sb
+
+```
+
+
+## Calibration curve for antimony at 334.50134 nm
+
+From the access to the National Institute of Standards and Technology (NIST) atomic emission spectrum database, the higher intensity of Antimony (Sb) occurs at 334.50134 which is approximately equal to 334.5 thus we select 334.534 for our univariate analysis. 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5, fig.width=8}
+# calculate the mean and standard error for the univariate analysis
+
+#lamb_sb <- 231.154 # rsquare = 0.5355
+
+lamb_sb <- 276.956 # rsquare = 0.8994
+
+m_antimony_0 <- average(Raw_antimony_0[(Raw_antimony_0$Wavelength==lamb_sb),])$v_m
+m_antimony_100 <- average(Raw_antimony_100[(Raw_antimony_100$Wavelength==lamb_sb),])$v_m
+m_antimony_250 <- average(Raw_antimony_250[(Raw_antimony_250$Wavelength==lamb_sb),])$v_m
+m_antimony_500 <- average(Raw_antimony_500[(Raw_antimony_500$Wavelength==lamb_sb),])$v_m
+m_antimony_1000 <- average(Raw_antimony_1000[(Raw_antimony_1000$Wavelength==lamb_sb),])$v_m
+
+
+sd_antimony_0 <- average(Raw_antimony_0[(Raw_antimony_0$Wavelength==lamb_sb),])$v_sd
+sd_antimony_100 <- average(Raw_antimony_100[(Raw_antimony_100$Wavelength==lamb_sb),])$v_sd
+sd_antimony_250 <- average(Raw_antimony_250[(Raw_antimony_250$Wavelength==lamb_sb),])$v_sd
+sd_antimony_500 <- average(Raw_antimony_500[(Raw_antimony_500$Wavelength==lamb_sb),])$v_sd
+sd_antimony_1000 <- average(Raw_antimony_1000[(Raw_antimony_1000$Wavelength==lamb_sb),])$v_sd
+
+antimony_uni_data <- data.frame(c(m_antimony_0,m_antimony_100,m_antimony_250,
+                              m_antimony_500,m_antimony_1000),
+                            c(sd_antimony_0,sd_antimony_100,sd_antimony_250,
+                              sd_antimony_500,sd_antimony_1000),
+                            c(0,100,250,500,1000))
+colnames(antimony_uni_data) <- c("Mean_I","sd","Concentration")
+
+## Plotting
+summary(lm(Mean_I~Concentration, data = antimony_uni_data))
+
+fit_antimony <- lm(Mean_I~Concentration, data = antimony_uni_data) # Rsquare = 0.0574
+
+cali_plot_sb <- ggplot(antimony_uni_data, aes(x=Concentration, y=Mean_I)) +
+  geom_point(size=2) +
+  geom_errorbar(aes(ymin=Mean_I-sd, ymax=Mean_I+sd), colour="black") +
+  scale_x_continuous(label= comma) +
+  stat_smooth(method = "lm", col = "red", se= FALSE) +
+  xlab("concentration of Sb at 276.9 nm in ppm") +
+  ylab("Intensity (a.u.)") +
+  geom_label(x=10, y=75, label="R = 0.8994") + 
+  theme_bw() + p
+
+cali_plot_sb
+
+```
+
+
+# Analysis on Tungsten (W) data
+
+## Handling the negative intensities
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#Read in raw data
+
+Raw_tungsten_0 <- openxlsx::read.xlsx("Tungsten_raw_data.xlsx", sheet="tungsten_0_ppm", colNames = TRUE)
+Raw_tungsten_100 <- openxlsx::read.xlsx("Tungsten_raw_data.xlsx", sheet="tungsten_100_ppm", colNames = TRUE)
+Raw_tungsten_500 <- openxlsx::read.xlsx("Tungsten_raw_data.xlsx", sheet="tungsten_500_ppm", colNames = TRUE)
+Raw_tungsten_1000 <- openxlsx::read.xlsx("Tungsten_raw_data.xlsx", sheet="tungsten_1000_ppm", colNames = TRUE)
+Raw_tungsten_10000 <- openxlsx::read.xlsx("Tungsten_raw_data.xlsx", sheet="tungsten_10000_ppm", colNames = TRUE)
+```
+
+Now we take the average of all the nine positive shots by considering only the positive intensities
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Take the average of all nine LIBS shots
+mean_tungsten_0 <- average(Raw_tungsten_0)$v_m
+mean_tungsten_100 <- average(Raw_tungsten_100)$v_m
+mean_tungsten_500 <- average(Raw_tungsten_500)$v_m
+mean_tungsten_1000 <- average(Raw_tungsten_1000)$v_m
+mean_tungsten_10000 <- average(Raw_tungsten_10000)$v_m
+
+Tungsten_Data_mval <- data.frame(Raw_tungsten_0$Wavelength,mean_tungsten_0,mean_tungsten_100,mean_tungsten_500,mean_tungsten_1000,mean_tungsten_10000)
+
+Tungsten_Intensity_mval <- c(mean_tungsten_0,mean_tungsten_100, mean_tungsten_500, mean_tungsten_1000, mean_tungsten_10000)
+
+Conc_tungsten <- factor(c(rep("Concentration = 0 ppm",12288),
+                          rep("Concentration = 100 ppm",12288),
+                          rep("Concentration = 500 ppm",12288),
+                          rep("Concentration = 1000 ppm",12288),
+                          rep("Concentration = 10000 ppm",12288)),
+                        levels = c("Concentration = 0 ppm",
+                                   "Concentration = 100 ppm",
+                                   "Concentration = 500 ppm",
+                                   "Concentration = 1000 ppm",
+                                   "Concentration = 10000 ppm"))
+Wavelength_tungsten <- rep(Raw_tungsten_0$Wavelength,5)
+
+Tungsten_mval <- data.frame(Wavelength_tungsten, Tungsten_Intensity_mval,Conc_tungsten) # Wavelength and Conc are in previous block code
+colnames(Tungsten_mval) <- c("Wavelength","Intensity","Conc")
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10, fig.width=8}
+
+# Tungsten_mval[which(Tungsten_mval$Wavelength>429 & Tungsten_mval$Wavelength<430 & Tungsten_mval$Conc=="Concentration = 0 ppm"),] # to check specific values
+
+l_w <-230 # lowest value of wavelength to display
+u_w <-550 # upper value of wavelength to display
+
+Tungsten_mval2 <- Tungsten_mval[which(Tungsten_mval$Wavelength>=l_w & Tungsten_mval$Wavelength<u_w),] # cut the wavelength at 720
+
+spec_plot_w <- ggplot(data = Tungsten_mval2, aes(x = Wavelength, y = Intensity))+
+  geom_line(size = 0.8) + theme_bw() +
+  facet_wrap(~Conc,nrow = 5, ncol = 1, scales = "free_y")+
+  xlab("Wavelength (nm)") +
+  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(0,u_w,50)) +
+  scale_y_continuous(breaks=seq(0,20000,2000)) + p
+
+spec_plot_w
+
+```
+
+
+## Calibration curve for tungsten at 334.50134 nm
+
+From the access to the National Institute of Standards and Technology (NIST) atomic emission spectrum database, the higher intensity of Tungsten (W) occurs at 212.1576 which is approximately equal to 212.1 thus we select 212.1 nm for our univariate analysis. 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5, fig.width=8}
+# calculate the mean and standard error for the univariate analysis
+
+#lamb_sb <- 231.154 # rsquare = 0.5355
+
+#R_w <- Rvalues(Tungsten_Data_mval,c(0,100,500,1000,10000))
+
+#R_w[which(R_w$Rsquare>0.9 & R_w$Rsquare<0.92 & R_w$Wavelength<530),]
+
+#lamb_w <- 405.245 # rsquare = 0.8994
+
+lamb_w <- 212.052
+
+m_tungsten_0 <- average(Raw_tungsten_0[(Raw_tungsten_0$Wavelength==lamb_w),])$v_m
+m_tungsten_100 <- average(Raw_tungsten_100[(Raw_tungsten_100$Wavelength==lamb_w),])$v_m
+m_tungsten_500 <- average(Raw_tungsten_500[(Raw_tungsten_500$Wavelength==lamb_w),])$v_m
+m_tungsten_1000 <- average(Raw_tungsten_1000[(Raw_tungsten_1000$Wavelength==lamb_w),])$v_m
+m_tungsten_10000 <- average(Raw_tungsten_10000[(Raw_tungsten_10000$Wavelength==lamb_w),])$v_m
+
+
+sd_tungsten_0 <- average(Raw_tungsten_0[(Raw_tungsten_0$Wavelength==lamb_w),])$v_sd
+sd_tungsten_100 <- average(Raw_tungsten_100[(Raw_tungsten_100$Wavelength==lamb_w),])$v_sd
+sd_tungsten_500 <- average(Raw_tungsten_500[(Raw_tungsten_500$Wavelength==lamb_w),])$v_sd
+sd_tungsten_1000 <- average(Raw_tungsten_1000[(Raw_tungsten_1000$Wavelength==lamb_w),])$v_sd
+sd_tungsten_10000 <- average(Raw_tungsten_10000[(Raw_tungsten_10000$Wavelength==lamb_w),])$v_sd
+
+tungsten_uni_data <- data.frame(c(m_tungsten_0,m_tungsten_100,m_tungsten_500,
+                                  m_tungsten_1000,m_tungsten_10000),
+                                c(sd_tungsten_0,sd_tungsten_100,sd_tungsten_500,
+                                  sd_tungsten_1000,sd_tungsten_10000),
+                                c(1,100,500,1000,10000))
+colnames(tungsten_uni_data) <- c("Mean_I","sd","Concentration")
+
+## Plotting
+summary(lm(Mean_I~Concentration, data = tungsten_uni_data))
+
+fit_tungsten <- lm(Mean_I~Concentration, data = tungsten_uni_data) # Rsquare = 0.0574
+
+cali_plot_w <- ggplot(tungsten_uni_data, aes(x=Concentration, y=Mean_I)) +
+  geom_point(size=2) +
+  geom_errorbar(aes(ymin=Mean_I-sd, ymax=Mean_I+sd), colour="black") +
+  scale_x_continuous(label= comma, trans = "log10") +
+  stat_smooth(method = "lm", col = "red", se= FALSE) +
+  xlab("Log(concentration of W at 212.1 nm in ppm)") +
+  ylab("Intensity (a.u.)") +
+  geom_label(x=0, y=75, label="R = 0.8043") + 
+  theme_bw() + p
+
+cali_plot_w
+
+```
 
 
