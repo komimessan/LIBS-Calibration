@@ -127,19 +127,20 @@ From the access to the National Institute of Standards and Technology (NIST) ato
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5, fig.width=8}
 # calculate the mean and standard error for the univariate analysis
+lamb_pb <- 280.249
 
-m_lead_0 <- average(Raw_lead_0[(Raw_lead_0$Wavelength==280.249),])$v_m
-m_lead_100 <- average(Raw_lead_100[(Raw_lead_100$Wavelength==280.249),])$v_m
-m_lead_1000 <- average(Raw_lead_1000[(Raw_lead_1000$Wavelength==280.249),])$v_m
-m_lead_10000 <- average(Raw_lead_10000[(Raw_lead_10000$Wavelength==280.249),])$v_m
-m_lead_100000 <- average(Raw_lead_100000[(Raw_lead_100000$Wavelength==280.249),])$v_m
+m_lead_0 <- average(Raw_lead_0[(Raw_lead_0$Wavelength==lamb_pb),])$v_m
+m_lead_100 <- average(Raw_lead_100[(Raw_lead_100$Wavelength==lamb_pb),])$v_m
+m_lead_1000 <- average(Raw_lead_1000[(Raw_lead_1000$Wavelength==lamb_pb),])$v_m
+m_lead_10000 <- average(Raw_lead_10000[(Raw_lead_10000$Wavelength==lamb_pb),])$v_m
+m_lead_100000 <- average(Raw_lead_100000[(Raw_lead_100000$Wavelength==lamb_pb),])$v_m
 
 
-sd_lead_0 <- average(Raw_lead_0[(Raw_lead_0$Wavelength==280.249),])$v_sd
-sd_lead_100 <- average(Raw_lead_100[(Raw_lead_100$Wavelength==280.249),])$v_sd
-sd_lead_1000 <- average(Raw_lead_1000[(Raw_lead_1000$Wavelength==280.249),])$v_sd
-sd_lead_10000 <- average(Raw_lead_10000[(Raw_lead_10000$Wavelength==280.249),])$v_sd
-sd_lead_100000 <- average(Raw_lead_100000[(Raw_lead_100000$Wavelength==280.249),])$v_sd
+sd_lead_0 <- average(Raw_lead_0[(Raw_lead_0$Wavelength==lamb_pb),])$v_sd
+sd_lead_100 <- average(Raw_lead_100[(Raw_lead_100$Wavelength==lamb_pb),])$v_sd
+sd_lead_1000 <- average(Raw_lead_1000[(Raw_lead_1000$Wavelength==lamb_pb),])$v_sd
+sd_lead_10000 <- average(Raw_lead_10000[(Raw_lead_10000$Wavelength==lamb_pb),])$v_sd
+sd_lead_100000 <- average(Raw_lead_100000[(Raw_lead_100000$Wavelength==lamb_pb),])$v_sd
 
 lead_uni_data <- data.frame(c(m_lead_0,m_lead_100,m_lead_1000,
                               m_lead_10000,m_lead_100000),
@@ -150,16 +151,16 @@ colnames(lead_uni_data) <- c("Mean_I","sd","Concentration")
 
 ## Plotting
 
-fit_lead <- lm(Mean_I~Concentration, data = lead_uni_data) # Rsquare = 0.553
-
+fit_lead <- lm(Mean_I~Concentration, data = lead_uni_data) # Rsquare = 0.6647
+ 
 cali_plot_pb <- ggplot(lead_uni_data, aes(x=Concentration, y=Mean_I)) +
   geom_point(size=2) +
   geom_errorbar(aes(ymin=Mean_I-sd, ymax=Mean_I+sd), colour="black") +
-  scale_x_log10(label= comma) +
+  scale_x_continuous(label= comma, breaks=c(10,1000,100000), trans = "log10")+
   stat_smooth(method = "lm", col = "red", se= FALSE) +
   xlab("Log(concentration of Pb at 280.2 nm in ppm)") +
   ylab("Intensity (a.u.)") +
-  geom_label(x=0.5, y=500, label="Adj R2 = 0.55291") + 
+  geom_label(x=0.5, y=500, label="R = 0.6647") + 
   theme_bw() + p
 
 cali_plot_pb
@@ -229,7 +230,7 @@ u_w <-550 # upper value of wavelength to display
   
 Zinc_mval2 <- Zinc_mval[which(Zinc_mval$Wavelength>=l_w & Zinc_mval$Wavelength<u_w),] # cut the wavelength at 720
 
-spec_plot_zn <- ggplot(data = Zinc_mval2, aes(x = Wavelength, y = Intensity)) +
+spec_plot_zn <- ggplot(data = Zinc_mval2, aes(x = Wavelength, y = Intensity))+
   geom_line(size = 0.8) + theme_bw() +
   facet_wrap(~Conc,nrow = 5, ncol = 1, scales = "free_y")+
   xlab("Wavelength (nm)") +
@@ -247,39 +248,43 @@ From the access to the National Institute of Standards and Technology (NIST) ato
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5, fig.width=8}
 # calculate the mean and standard error for the univariate analysis
+lamb_zn <- 481.017 #rsqure = 0.3559
 
-m_zinc_0 <- average(Raw_zinc_0[(Raw_zinc_0$Wavelength==334.534),])$v_m
-m_zinc_100 <- average(Raw_zinc_100[(Raw_zinc_100$Wavelength==334.534),])$v_m
-m_zinc_250 <- average(Raw_zinc_250[(Raw_zinc_250$Wavelength==334.534),])$v_m
-m_zinc_500 <- average(Raw_zinc_500[(Raw_zinc_500$Wavelength==334.534),])$v_m
-m_zinc_1000 <- average(Raw_zinc_1000[(Raw_zinc_1000$Wavelength==334.534),])$v_m
+#lamb_zn <- 334.534
+
+m_zinc_0 <- average(Raw_zinc_0[(Raw_zinc_0$Wavelength=lamb_zn),])$v_m
+m_zinc_100 <- average(Raw_zinc_100[(Raw_zinc_100$Wavelength=lamb_zn),])$v_m
+m_zinc_250 <- average(Raw_zinc_250[(Raw_zinc_250$Wavelength=lamb_zn),])$v_m
+m_zinc_500 <- average(Raw_zinc_500[(Raw_zinc_500$Wavelength=lamb_zn),])$v_m
+m_zinc_1000 <- average(Raw_zinc_1000[(Raw_zinc_1000$Wavelength=lamb_zn),])$v_m
 
 
-sd_zinc_0 <- average(Raw_zinc_0[(Raw_zinc_0$Wavelength==334.534),])$v_sd
-sd_zinc_100 <- average(Raw_zinc_100[(Raw_zinc_100$Wavelength==334.534),])$v_sd
-sd_zinc_250 <- average(Raw_zinc_250[(Raw_zinc_250$Wavelength==334.534),])$v_sd
-sd_zinc_500 <- average(Raw_zinc_500[(Raw_zinc_500$Wavelength==334.534),])$v_sd
-sd_zinc_1000 <- average(Raw_zinc_1000[(Raw_zinc_1000$Wavelength==334.534),])$v_sd
+sd_zinc_0 <- average(Raw_zinc_0[(Raw_zinc_0$Wavelength=lamb_zn),])$v_sd
+sd_zinc_100 <- average(Raw_zinc_100[(Raw_zinc_100$Wavelength=lamb_zn),])$v_sd
+sd_zinc_250 <- average(Raw_zinc_250[(Raw_zinc_250$Wavelength=lamb_zn),])$v_sd
+sd_zinc_500 <- average(Raw_zinc_500[(Raw_zinc_500$Wavelength=lamb_zn),])$v_sd
+sd_zinc_1000 <- average(Raw_zinc_1000[(Raw_zinc_1000$Wavelength=lamb_zn),])$v_sd
 
 zinc_uni_data <- data.frame(c(m_zinc_0,m_zinc_100,m_zinc_250,
                               m_zinc_500,m_zinc_1000),
                             c(sd_zinc_0,sd_zinc_100,sd_zinc_250,
                               sd_zinc_500,sd_zinc_1000),
-                            c(1,100,1000,10000,100000))
+                            c(0,100,250,500,1000))
 colnames(zinc_uni_data) <- c("Mean_I","sd","Concentration")
 
 ## Plotting
+summary(lm(Mean_I~Concentration, data = zinc_uni_data))
 
-fit_zinc <- lm(Mean_I~Concentration, data = zinc_uni_data) # Rsquare = 0.553
+fit_zinc <- lm(Mean_I~Concentration, data = zinc_uni_data) # Rsquare = 0.0574
 
 cali_plot_zn <- ggplot(zinc_uni_data, aes(x=Concentration, y=Mean_I)) +
   geom_point(size=2) +
   geom_errorbar(aes(ymin=Mean_I-sd, ymax=Mean_I+sd), colour="black") +
-  scale_x_log10(label= comma) +
+  scale_x_continuous(label= comma) +
   stat_smooth(method = "lm", col = "red", se= FALSE) +
   xlab("concentration of Zn at 334.5 nm in ppm") +
   ylab("Intensity (a.u.)") +
-  geom_label(x=0.2, y=200, label="Adj R2 = -0.31459") + 
+  geom_label(x=0.2, y=200, label="R = 0.7364") + 
   theme_bw() + p
 
 cali_plot_zn
