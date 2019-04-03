@@ -29,25 +29,11 @@ library(openxlsx)
 ```
 
 
-# Analysis on Lead data
-
-## Handling the negative intensities 
-
-It is noteworthy to point out that several intensities values are negative due to noises in the data. To process this data, all negative intensities values were treating as missing values in the remaining of the analysis. Thus we have baseline of 0 for the intensities value.
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-#Read in raw data
-
-Raw_lead_0 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_0_ppm", colNames = TRUE)
-Raw_lead_100 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_100_ppm", colNames = TRUE)
-Raw_lead_1000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_1000_ppm", colNames = TRUE)
-Raw_lead_10000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_10000_ppm", colNames = TRUE)
-Raw_lead_100000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_100000_ppm", colNames = TRUE)
-```
-
-The average of each of the nine shots were taken by only considering the positive values using the following function and also function to calculate all Rsquare values
  
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
+ 
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+# First we create functions to perform average calculation and also the rsquares given appropriate data
 
 average <- function(Raw_data){
   isPositive <- function(x) x>=0 # function to extract the positive value
@@ -77,13 +63,13 @@ Rsquare <- numeric(0L)
 
 # Loop through the entire data and create a linear model where the mean intensity is the dependent variable and the theoretical concentration is the independent variable. 
 for (i in 1:L){
-  linear_relation <- lm(as.numeric(Tungsten_Data_mval[i,2:6])~concentration)
+  linear_relation <- lm(as.numeric(Average_raw_data[i,2:6])~concentration)
   sum_relation <- summary(linear_relation)
   
   #extract coefficients from linear regression
   slope <- c(slope,linear_relation$coefficients[2])
   intercept <- c(intercept,linear_relation$coefficients[1])
-  Rsquare <- slope <- c(Rsquare,sum_relation$r.squared)
+  Rsquare <- c(Rsquare,sum_relation$r.squared)
 }  
   
  result <- data.frame(Average_raw_data[,1], slope,intercept, Rsquare)
@@ -91,8 +77,37 @@ for (i in 1:L){
  return(result)
 }
 
+
+######## For plotting
+
+black.bold.text1 <- element_text(face = "bold", color = "black",size=18) # x and y axis
+black.bold.text2 <- element_text(face = "bold", color = "black",size=18) # title
+
+p<-theme(axis.text.x = element_text(face="bold", color="black", size=16),
+         axis.text.y = element_text(face="bold", color="black", size=16),
+         title=black.bold.text2,axis.title = black.bold.text1, legend.position = "bottom",
+         legend.text = element_text(size=18),strip.text.x = element_text(face="bold",size=18))
+
 ```
 
+
+# Analysis on Lead data
+
+## Handling the negative intensities 
+
+It is noteworthy to point out that several intensities values are negative due to noises in the data. To process this data, all negative intensities values were treating as missing values in the remaining of the analysis. Thus we have baseline of 0 for the intensities value.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#Read in raw data
+
+Raw_lead_0 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_0_ppm", colNames = TRUE)
+Raw_lead_100 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_100_ppm", colNames = TRUE)
+Raw_lead_1000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_1000_ppm", colNames = TRUE)
+Raw_lead_10000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_10000_ppm", colNames = TRUE)
+Raw_lead_100000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_100000_ppm", colNames = TRUE)
+```
+
+The average of each of the nine shots were taken by only considering the positive values using a pre-defined function and also a function to calculate all Rsquare values
 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
@@ -125,34 +140,32 @@ Lead_mval <- data.frame(Wavelength, Intensity_mval,Conc) # Wavelength and Conc a
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10, fig.width=8}
 # plot The LIBS Spectra at different concentration
 
-black.bold.text1 <- element_text(face = "bold", color = "black",size=18) # x and y axis
-black.bold.text2 <- element_text(face = "bold", color = "black",size=18) # title
-
-p<-theme(axis.text.x = element_text(face="bold", color="black", size=16),
-         axis.text.y = element_text(face="bold", color="black", size=16),
-         title=black.bold.text2,axis.title = black.bold.text1, legend.position = "bottom",
-         legend.text = element_text(size=18),strip.text.x = element_text(face="bold",size=18))
-
 # Lead_mval[which(Lead_mval$Wavelength>280.1 & Lead_mval$Wavelength<280.2 & Lead_mval$Conc=="Concentration = 0 ppm"),] # to check specific values
-Lead_mval2 <- Lead_mval[which(Lead_mval$Wavelength>=200 & Lead_mval$Wavelength<375),] # cut the wavelength at 720
+Lead_mval2 <- Lead_mval[which(Lead_mval$Wavelength>=200 & Lead_mval$Wavelength<350),] # cut the wavelength at 720
 
 #Lead_mval2 <- Lead_mval[which(Lead_mval$Wavelength>=280 & Lead_mval$Wavelength<285),] 
 spec_plot_pb <- ggplot(data = Lead_mval2, aes(x = Wavelength, y = Intensity_mval)) +
   geom_line(size = 0.8) + theme_bw() +
   facet_wrap(~Conc,nrow = 5, ncol = 1, scales = "free_y")+
   xlab("Wavelength (nm)") +
-  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(0,550,25)) +
-  scale_y_continuous(breaks=seq(0,14000,2000)) + p
+  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(200,350,10)) +
+  scale_y_continuous(breaks=seq(0,14000,1000)) + p
 
 spec_plot_pb
 ```
 
 ## Calibration curve for lead at 280.2 nm
 
-From the access to the National Institute of Standards and Technology (NIST) atomic emission spectrum database, the higher intensity of lead (Pb) occurs at 280.1995 which is approximately equal to 280.2 thus we select 280.249 for our univariate analysis. 
+From the access to the National Institute of Standards and Technology (NIST) atomic emission spectrum database which can be found here [here](https://physics.nist.gov/PhysRefData/Handbook), the higher intensity of lead (Pb) occurs at 280.1995 which is approximately equal to 280.2 thus we select 280.2 for our univariate analysis. 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5, fig.width=8}
 # calculate the mean and standard error for the univariate analysis
+# use "lead strong line" to find the lead info online
+#R_pb <- Rvalues(Lead_Data_mval,c(0,100,1000,10000,100000))
+
+# R_pb[which(R_pb$Wavelength>206 & R_pb$Wavelength<207),]
+# R_pb[which(R_pb$Rsquare>0.97 & R_pb$Rsquare<0.99 & R_pb$Wavelength<500 & R_zn$slope>0),]
+
 lamb_pb <- 280.249
 
 m_lead_0 <- average(Raw_lead_0[(Raw_lead_0$Wavelength==lamb_pb),])$v_m
@@ -177,6 +190,8 @@ colnames(lead_uni_data) <- c("Mean_I","sd","Concentration")
 
 ## Plotting
 
+summary(lm(Mean_I~Concentration, data = lead_uni_data))
+
 fit_lead <- lm(Mean_I~Concentration, data = lead_uni_data) # Rsquare = 0.6647
  
 cali_plot_pb <- ggplot(lead_uni_data, aes(x=Concentration, y=Mean_I)) +
@@ -186,7 +201,7 @@ cali_plot_pb <- ggplot(lead_uni_data, aes(x=Concentration, y=Mean_I)) +
   stat_smooth(method = "lm", col = "red", se= FALSE) +
   xlab("Log(concentration of Pb at 280.2 nm in ppm)") +
   ylab("Intensity (a.u.)") +
-  geom_label(x=0.5, y=500, label="R = 0.6647") + 
+  geom_label(x=0.2, y=500, label="R = 0.6647") + 
   theme_bw() + p
 
 cali_plot_pb
@@ -251,8 +266,8 @@ colnames(Zinc_mval) <- c("Wavelength","Intensity","Conc")
 
 # Zinc_mval[which(Zinc_mval$Wavelength>472 & Zinc_mval$Wavelength<472.8 & Zinc_mval$Conc=="Concentration = 0 ppm"),] # to check specific values
 
-l_w <-230 # lowest value of wavelength to display
-u_w <-550 # upper value of wavelength to display
+l_w <-200 # lowest value of wavelength to display
+u_w <-350 # upper value of wavelength to display
   
 Zinc_mval2 <- Zinc_mval[which(Zinc_mval$Wavelength>=l_w & Zinc_mval$Wavelength<u_w),] # cut the wavelength at 720
 
@@ -260,7 +275,7 @@ spec_plot_zn <- ggplot(data = Zinc_mval2, aes(x = Wavelength, y = Intensity))+
   geom_line(size = 0.8) + theme_bw() +
   facet_wrap(~Conc,nrow = 5, ncol = 1, scales = "free_y")+
   xlab("Wavelength (nm)") +
-  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(0,u_w,50)) +
+  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(l_w,u_w,10)) +
   scale_y_continuous(breaks=seq(0,10000,2000)) + p
 
 spec_plot_zn
@@ -268,9 +283,9 @@ spec_plot_zn
 ```
 
 
-## Calibration curve for zinc at 492.40132 nm
+## Calibration curve for zinc at 213.85735 nm
 
-From the access to the National Institute of Standards and Technology (NIST) atomic emission spectrum database, the higher intensity of zinc (Zn) occurs at 492.40132 which is approximately equal to 492.4 thus we select 492.4 for our univariate analysis. 
+From the access to the National Institute of Standards and Technology (NIST) atomic emission spectrum database, the higher intensity of zinc (Zn) occurs at 213.85735 which is approximately equal to 213.8 thus we select 213.8 for our univariate analysis. 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5, fig.width=8}
 # calculate the mean and standard error for the univariate analysis
@@ -281,10 +296,11 @@ From the access to the National Institute of Standards and Technology (NIST) ato
 #R_zn <- Rvalues(Zinc_Data_mval,c(0,100,250,500,1000))
 
 # R_zn[which(R_zn$Wavelength>206 & R_zn$Wavelength<207),]
-# R_zn[which(R_zn$Rsquare>0.89 & R_zn$Rsquare<0.92 & R_zn$Wavelength<500),]
+# R_zn[which(R_zn$Rsquare>0.97 & R_zn$Rsquare<0.99 & R_zn$Wavelength<500 & R_zn$slope>0),]
 
-lamb_zn <- 492.465
-
+#lamb_zn <- 492.465
+#lamb_zn <- 255.475 #rsquare = 0.8
+lamb_zn <- 213.886 #rsquare = 0.65
 
 m_zinc_0 <- average(Raw_zinc_0[(Raw_zinc_0$Wavelength==lamb_zn),])$v_m
 m_zinc_100 <- average(Raw_zinc_100[(Raw_zinc_100$Wavelength==lamb_zn),])$v_m
@@ -318,7 +334,7 @@ cali_plot_zn <- ggplot(zinc_uni_data, aes(x=Concentration, y=Mean_I)) +
   stat_smooth(method = "lm", col = "red", se= FALSE) +
   xlab("concentration of Zn at 492.4 nm in ppm") +
   ylab("Intensity (a.u.)") +
-  geom_label(x=10, y=900, label="R = 0.3459") + 
+  geom_label(x=10, y=60, label="R = 0.6549") + 
   theme_bw() + p
 
 cali_plot_zn
@@ -331,7 +347,6 @@ cali_plot_zn
 # Analysis on Antimony (Sb) data
 
 ## Handling the negative intensities
-
 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
@@ -383,8 +398,8 @@ colnames(Antimony_mval) <- c("Wavelength","Intensity","Conc")
 
 # Antimony_mval[which(Antimony_mval$Wavelength>231 & Antimony_mval$Wavelength<231.4 & Antimony_mval$Conc=="Concentration = 0 ppm"),] # to check specific values
 
-l_w <-230 # lowest value of wavelength to display
-u_w <-550 # upper value of wavelength to display
+l_w <-200 # lowest value of wavelength to display
+u_w <-350 # upper value of wavelength to display
   
 Antimony_mval2 <- Antimony_mval[which(Antimony_mval$Wavelength>=l_w & Antimony_mval$Wavelength<u_w),] # cut the wavelength at 720
 
@@ -392,7 +407,7 @@ spec_plot_sb <- ggplot(data = Antimony_mval2, aes(x = Wavelength, y = Intensity)
   geom_line(size = 0.8) + theme_bw() +
   facet_wrap(~Conc,nrow = 5, ncol = 1, scales = "free_y")+
   xlab("Wavelength (nm)") +
-  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(0,u_w,50)) +
+  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(l_w,u_w,10)) +
   scale_y_continuous(breaks=seq(0,10000,2000)) + p
 
 spec_plot_sb
@@ -400,9 +415,9 @@ spec_plot_sb
 ```
 
 
-## Calibration curve for antimony at 334.50134 nm
+## Calibration curve for antimony at 276.9931 nm
 
-From the access to the National Institute of Standards and Technology (NIST) atomic emission spectrum database, the higher intensity of Antimony (Sb) occurs at 334.50134 which is approximately equal to 334.5 thus we select 334.534 for our univariate analysis. 
+From the access to the National Institute of Standards and Technology (NIST) atomic emission spectrum database, the higher intensity of Antimony (Sb) occurs at 276.9931 which is approximately equal to 276.9 thus we select 276.9 for our univariate analysis. 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5, fig.width=8}
 # calculate the mean and standard error for the univariate analysis
@@ -504,8 +519,8 @@ colnames(Tungsten_mval) <- c("Wavelength","Intensity","Conc")
 
 # Tungsten_mval[which(Tungsten_mval$Wavelength>429 & Tungsten_mval$Wavelength<430 & Tungsten_mval$Conc=="Concentration = 0 ppm"),] # to check specific values
 
-l_w <-230 # lowest value of wavelength to display
-u_w <-550 # upper value of wavelength to display
+l_w <-200 # lowest value of wavelength to display
+u_w <-350 # upper value of wavelength to display
 
 Tungsten_mval2 <- Tungsten_mval[which(Tungsten_mval$Wavelength>=l_w & Tungsten_mval$Wavelength<u_w),] # cut the wavelength at 720
 
@@ -513,7 +528,7 @@ spec_plot_w <- ggplot(data = Tungsten_mval2, aes(x = Wavelength, y = Intensity))
   geom_line(size = 0.8) + theme_bw() +
   facet_wrap(~Conc,nrow = 5, ncol = 1, scales = "free_y")+
   xlab("Wavelength (nm)") +
-  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(0,u_w,50)) +
+  ylab("Intensity (A.U.)") +  scale_x_continuous(breaks=seq(l_w,u_w,10)) +
   scale_y_continuous(breaks=seq(0,20000,2000)) + p
 
 spec_plot_w
@@ -521,7 +536,7 @@ spec_plot_w
 ```
 
 
-## Calibration curve for tungsten at 334.50134 nm
+## Calibration curve for tungsten at 212.1576 nm
 
 From the access to the National Institute of Standards and Technology (NIST) atomic emission spectrum database, the higher intensity of Tungsten (W) occurs at 212.1576 which is approximately equal to 212.1 thus we select 212.1 nm for our univariate analysis. 
 
