@@ -1,0 +1,400 @@
+---
+title: "Multivariate LIBS Calibration Curve"
+author: "Komi Messan"
+date: "April 5, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# All packages needed
+library(rJava)
+library(xlsx)
+library(xlsxjars)
+library(ggplot2)
+library(cowplot)
+library(latex2exp)
+library(DT) # for datatable
+library(pls)  # For Principal Component Regression (PCR) and Partial Least Squares Regression (PLSR)
+library(devtools)
+library(ggbiplot)
+library(openxlsx)
+#library(plotly)
+#library(tidyverse)
+```
+
+
+ 
+ 
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+# First we create functions to perform average calculation and also the rsquares given appropriate data
+
+average <- function(Raw_data){
+  isPositive <- function(x) x>=0 # function to extract the positive value
+  se <- function(x) sqrt(var(x)/length(x)) # standard error
+  n <- dim(Raw_data)[1] # find the length of the data
+  (v_m <- rep(NA, n)) # create an empty vector of length n for the mean
+  (v_sd <- rep(NA, n)) # create an empty vector of length n for the sd
+  
+  for (i in 1:n){
+    v_m[i] <- mean(Filter(isPositive, as.numeric(Raw_data[i,-1])))
+    v_sd[i] <- sd(Filter(isPositive, as.numeric(Raw_data[i,-1])))
+  }
+  v_m[is.na(v_m)] <- 0
+  v_sd[is.na(v_sd)] <- 0
+   return(data.frame(v_m,v_sd))
+}
+
+
+Rvalues <- function(Average_raw_data, concentration){
+  
+L <- length(Average_raw_data[,1])# length of the intensity data
+concentration <- concentration
+# create an empty vector for the slope, the intercept and Rsquare values
+slope <- numeric(0L)
+intercept <- numeric(0L)
+Rsquare <- numeric(0L)
+
+# Loop through the entire data and create a linear model where the mean intensity is the dependent variable and the theoretical concentration is the independent variable. 
+for (i in 1:L){
+  linear_relation <- lm(as.numeric(Average_raw_data[i,2:6])~concentration)
+  sum_relation <- summary(linear_relation)
+  
+  #extract coefficients from linear regression
+  slope <- c(slope,linear_relation$coefficients[2])
+  intercept <- c(intercept,linear_relation$coefficients[1])
+  Rsquare <- c(Rsquare,sum_relation$r.squared)
+}  
+  
+ result <- data.frame(Average_raw_data[,1], slope,intercept, Rsquare)
+ colnames(result) <- c("Wavelength","slope","intercept","Rsquare")
+ return(result)
+}
+
+
+######## For plotting
+
+black.bold.text1 <- element_text(face = "bold", color = "black",size=18) # x and y axis
+black.bold.text2 <- element_text(face = "bold", color = "black",size=18) # title
+
+p<-theme(axis.text.x = element_text(face="bold", color="black", size=16),
+         axis.text.y = element_text(face="bold", color="black", size=16),
+         title=black.bold.text2,axis.title = black.bold.text1, legend.position = "bottom",
+         legend.text = element_text(size=18),strip.text.x = element_text(face="bold",size=18))
+
+```
+
+# Introduction
+
+It is noteworthy to point out that several intensities values are negative due to noises in the data. To process this data, all negative intensities values were treating as missing values in the remaining of the analysis. Thus we have baseline of 0 for the intensities value. The average of each of the nine shots were then taken by only considering the positive values using a pre-defined. Finally, data was transpose and we add a new column called concentration so we can later do analysis. Analysis will be conducted using partial least square regression from the work of Bjørn-Helge Mevik, 2018 which can be found [here](https://cran.r-project.org/web/packages/pls/vignettes/pls-manual.pdf).
+
+# Analysis on Lead data
+
+## Data preprocessing 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#Read in raw data
+
+Raw_lead_0 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_0_ppm", colNames = TRUE)
+Raw_lead_100 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_100_ppm", colNames = TRUE)
+Raw_lead_1000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_1000_ppm", colNames = TRUE)
+Raw_lead_10000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_10000_ppm", colNames = TRUE)
+Raw_lead_100000 <- openxlsx::read.xlsx("Lead_raw_data.xlsx", sheet="lead_100000_ppm", colNames = TRUE)
+```
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Take the average of all nine LIBS shots
+mean_lead_0 <- average(Raw_lead_0)$v_m
+mean_lead_100 <- average(Raw_lead_100)$v_m
+mean_lead_1000 <- average(Raw_lead_1000)$v_m
+mean_lead_10000 <- average(Raw_lead_10000)$v_m
+mean_lead_100000 <- average(Raw_lead_100000)$v_m
+
+Lead_Data_mval <- data.frame(Raw_lead_0$Wavelength, mean_lead_0,mean_lead_100,
+                             mean_lead_1000, mean_lead_10000, 
+                             mean_lead_100000)
+colnames(Lead_Data_mval) <- c("Wavelength","Lead_0_ppm","Lead_100_ppm",
+                              "Lead_1000_ppm","Lead_10000_ppm",
+                              "Lead_100000_ppm")
+
+Intensity_mval <- c(mean_lead_0,mean_lead_100, mean_lead_1000, mean_lead_10000, mean_lead_100000)
+
+Conc <- c(rep("Concentration = 0 ppm",12288),
+                          rep("Concentration = 100 ppm",12288),
+                          rep("Concentration = 1000 ppm",12288),
+                          rep("Concentration = 10000 ppm",12288),
+                          rep("Concentration = 100000 ppm",12288))
+Wavelength <- rep(Raw_lead_0$Wavelength,5)
+
+Lead_mval <- data.frame(Wavelength, Intensity_mval,Conc) # Wavelength and Conc are in previous block code
+
+```
+ 
+ 
+## Data analysis 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=6, fig.width=14}
+# select certain ranges of the wavelength
+Lead_mval2 <- Lead_Data_mval[which(Lead_Data_mval$Wavelength>=200 & Lead_Data_mval$Wavelength<=350),] 
+pb_concentration <- c(0,100,1000,10000,100000)
+
+pb_mean_intensity <- t(Lead_mval2)
+pb_cnames <- pb_mean_intensity[1,]
+pb_mean_intensity <- pb_mean_intensity[-1,] # remove the row with wavelength
+colnames(pb_mean_intensity) <- pb_cnames # make first row to be the column name
+Lead_mval_final <- data.frame(pb_concentration, pb_mean_intensity=I(pb_mean_intensity)) # add the concentration column but in two different matrix form using I()
+
+lead.plsr <- plsr(pb_concentration ~ pb_mean_intensity, ncomp = 3, data = Lead_mval_final, validation = "LOO")
+
+summary(lead.plsr)
+
+lead.par <- par(mfrow=c(1,2))
+pb_rmsep <- plot(RMSEP(lead.plsr), legendpos = "topright") #Root Mean Square Error of the Prediction
+pb_predict_meas <- plot(lead.plsr, ncomp = 2, asp = 1, line = TRUE) # predicted vs. measured plot
+par(lead.par)
+
+```
+
+# Analysis on zinc data
+
+## Data preprocessing
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#Read in raw data
+
+Raw_zinc_0 <- openxlsx::read.xlsx("Zinc_raw_data.xlsx", sheet="zinc_0_ppm", colNames = TRUE)
+Raw_zinc_100 <- openxlsx::read.xlsx("Zinc_raw_data.xlsx", sheet="zinc_100_ppm", colNames = TRUE)
+Raw_zinc_250 <- openxlsx::read.xlsx("Zinc_raw_data.xlsx", sheet="zinc_250_ppm", colNames = TRUE)
+Raw_zinc_500 <- openxlsx::read.xlsx("Zinc_raw_data.xlsx", sheet="zinc_500_ppm", colNames = TRUE)
+Raw_zinc_1000 <- openxlsx::read.xlsx("Zinc_raw_data.xlsx", sheet="zinc_1000_ppm", colNames = TRUE)
+```
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Take the average of all nine LIBS shots
+mean_zinc_0 <- average(Raw_zinc_0)$v_m
+mean_zinc_100 <- average(Raw_zinc_100)$v_m
+mean_zinc_250 <- average(Raw_zinc_250)$v_m
+mean_zinc_500 <- average(Raw_zinc_500)$v_m
+mean_zinc_1000 <- average(Raw_zinc_1000)$v_m
+
+Zinc_Data_mval <- data.frame(Raw_zinc_0$Wavelength, mean_zinc_0,mean_zinc_100,
+                             mean_zinc_250, mean_zinc_500, 
+                             mean_zinc_1000)
+
+colnames(Zinc_Data_mval) <- c("Wavelength","Zinc_0_ppm","Zinc_100_ppm",
+                              "Zinc_250_ppm","Zinc_500_ppm",
+                              "Zinc_1000_ppm")
+
+Zinc_Intensity_mval <- c(mean_zinc_0,mean_zinc_100, mean_zinc_250, mean_zinc_500, mean_zinc_1000)
+
+Conc_zinc <- factor(c(rep("Concentration = 0 ppm",12288),
+                          rep("Concentration = 100 ppm",12288),
+                          rep("Concentration = 250 ppm",12288),
+                          rep("Concentration = 500 ppm",12288),
+                          rep("Concentration = 1000 ppm",12288)),
+                    levels = c("Concentration = 0 ppm",
+                               "Concentration = 100 ppm",
+                               "Concentration = 250 ppm",
+                               "Concentration = 500 ppm",
+                               "Concentration = 1000 ppm"))
+Wavelength_zinc <- rep(Raw_lead_0$Wavelength,5)
+
+Zinc_mval <- data.frame(Wavelength_zinc, Zinc_Intensity_mval,Conc_zinc) # Wavelength and Conc are in previous block code
+colnames(Zinc_mval) <- c("Wavelength","Intensity","Conc")
+
+```
+
+## Data analysis 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE,  fig.height=6, fig.width=14}
+
+# select certain ranges of the wavelength
+Zinc_mval2 <- Zinc_Data_mval[which(Zinc_Data_mval$Wavelength>=200 & Zinc_Data_mval$Wavelength<=350),] 
+zn_concentration <- c(0,100,250,500,1000)
+
+
+zn_mean_intensity <- t(Zinc_mval2)
+zn_cnames <- zn_mean_intensity[1,]
+zn_mean_intensity <- zn_mean_intensity[-1,] # remove the row with wavelength
+colnames(zn_mean_intensity) <- zn_cnames # make first row to be the column name
+Zinc_mval_final <- data.frame(zn_concentration, zn_mean_intensity=I(zn_mean_intensity)) # add the concentration column but in two different matrix form using I()
+
+
+
+zinc.plsr <- plsr(zn_concentration ~ zn_mean_intensity, ncomp = 3, data = Zinc_mval_final, validation = "LOO")
+
+summary(zinc.plsr)
+
+zinc.par <- par(mfrow=c(1,2))
+zn_rmsep <- plot(RMSEP(zinc.plsr), legendpos = "topright") #Root Mean Square Error of the Prediction
+zn_predict_meas <- plot(zinc.plsr, ncomp = 2, asp = 1, line = TRUE) # predicted vs. measured plot
+par(zinc.par)
+
+```
+
+
+# Analysis on Antimony (Sb) data
+
+## Data preprocessing
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#Read in raw data
+
+Raw_antimony_0 <- openxlsx::read.xlsx("Antimony_raw_data.xlsx", sheet="antimony_0_ppm", colNames = TRUE)
+Raw_antimony_100 <- openxlsx::read.xlsx("Antimony_raw_data.xlsx", sheet="antimony_100_ppm", colNames = TRUE)
+Raw_antimony_250 <- openxlsx::read.xlsx("Antimony_raw_data.xlsx", sheet="antimony_250_ppm", colNames = TRUE)
+Raw_antimony_500 <- openxlsx::read.xlsx("Antimony_raw_data.xlsx", sheet="antimony_500_ppm", colNames = TRUE)
+Raw_antimony_1000 <- openxlsx::read.xlsx("Antimony_raw_data.xlsx", sheet="antimony_1000_ppm", colNames = TRUE)
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Take the average of all nine LIBS shots
+mean_antimony_0 <- average(Raw_antimony_0)$v_m
+mean_antimony_100 <- average(Raw_antimony_100)$v_m
+mean_antimony_250 <- average(Raw_antimony_250)$v_m
+mean_antimony_500 <- average(Raw_antimony_500)$v_m
+mean_antimony_1000 <- average(Raw_antimony_1000)$v_m
+
+Antimony_Data_mval <- data.frame(Raw_antimony_0$Wavelength,mean_antimony_0,mean_antimony_100,mean_antimony_250,mean_antimony_500,mean_antimony_1000)
+
+colnames(Antimony_Data_mval) <- c("Wavelength","Antimony_0_ppm","Antimony_100_ppm",
+                              "Antimony_250_ppm","Antimony_500_ppm",
+                              "Antimony_1000_ppm")
+
+Antimony_Intensity_mval <- c(mean_antimony_0,mean_antimony_100, mean_antimony_250, mean_antimony_500, mean_antimony_1000)
+
+Conc_antimony <- factor(c(rep("Concentration = 0 ppm",12288),
+                          rep("Concentration = 100 ppm",12288),
+                          rep("Concentration = 250 ppm",12288),
+                          rep("Concentration = 500 ppm",12288),
+                          rep("Concentration = 1000 ppm",12288)),
+                    levels = c("Concentration = 0 ppm",
+                               "Concentration = 100 ppm",
+                               "Concentration = 250 ppm",
+                               "Concentration = 500 ppm",
+                               "Concentration = 1000 ppm"))
+Wavelength_antimony <- rep(Raw_antimony_0$Wavelength,5)
+
+Antimony_mval <- data.frame(Wavelength_antimony, Antimony_Intensity_mval,Conc_antimony) # Wavelength and Conc are in previous block code
+colnames(Antimony_mval) <- c("Wavelength","Intensity","Conc")
+
+```
+
+
+## Data analysis 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE,  fig.height=6, fig.width=14}
+
+# select certain ranges of the wavelength
+Antimony_mval2 <- Antimony_Data_mval[which(Antimony_Data_mval$Wavelength>=200 & Antimony_Data_mval$Wavelength<=350),] 
+sb_concentration <- c(0,100,250,500,1000)
+
+
+sb_mean_intensity <- t(Antimony_mval2)
+sb_cnames <- sb_mean_intensity[1,]
+sb_mean_intensity <- sb_mean_intensity[-1,] # remove the row with wavelength
+colnames(sb_mean_intensity) <- sb_cnames # make first row to be the column name
+Antimony_mval_final <- data.frame(sb_concentration, sb_mean_intensity=I(sb_mean_intensity)) # add the concentration column but in two different matrix form using I()
+
+
+
+antimony.plsr <- plsr(sb_concentration ~ sb_mean_intensity, ncomp = 3, data = Antimony_mval_final, validation = "LOO")
+
+summary(antimony.plsr)
+
+antimony.par <- par(mfrow=c(1,2))
+sb_rmsep <- plot(RMSEP(antimony.plsr), legendpos = "topright") #Root Mean Square Error of the Prediction
+sb_predict_meas <- plot(antimony.plsr, ncomp = 3, asp = 1, line = TRUE) # predicted vs. measured plot
+par(antimony.par)
+
+```
+
+
+# Analysis on Tungsten (W) data
+
+## Handling the negative intensities
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#Read in raw data
+
+Raw_tungsten_0 <- openxlsx::read.xlsx("Tungsten_raw_data.xlsx", sheet="tungsten_0_ppm", colNames = TRUE)
+Raw_tungsten_100 <- openxlsx::read.xlsx("Tungsten_raw_data.xlsx", sheet="tungsten_100_ppm", colNames = TRUE)
+Raw_tungsten_500 <- openxlsx::read.xlsx("Tungsten_raw_data.xlsx", sheet="tungsten_500_ppm", colNames = TRUE)
+Raw_tungsten_1000 <- openxlsx::read.xlsx("Tungsten_raw_data.xlsx", sheet="tungsten_1000_ppm", colNames = TRUE)
+Raw_tungsten_10000 <- openxlsx::read.xlsx("Tungsten_raw_data.xlsx", sheet="tungsten_10000_ppm", colNames = TRUE)
+```
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Take the average of all nine LIBS shots
+mean_tungsten_0 <- average(Raw_tungsten_0)$v_m
+mean_tungsten_100 <- average(Raw_tungsten_100)$v_m
+mean_tungsten_500 <- average(Raw_tungsten_500)$v_m
+mean_tungsten_1000 <- average(Raw_tungsten_1000)$v_m
+mean_tungsten_10000 <- average(Raw_tungsten_10000)$v_m
+
+Tungsten_Data_mval <- data.frame(Raw_tungsten_0$Wavelength,mean_tungsten_0,mean_tungsten_100,mean_tungsten_500,mean_tungsten_1000,mean_tungsten_10000)
+
+colnames(Tungsten_Data_mval) <- c("Wavelength","Tungsten_0_ppm","Tungsten_100_ppm",
+                              "Tungsten_500_ppm","Tungsten_1000_ppm",
+                              "Tungsten_10000_ppm")
+
+Tungsten_Intensity_mval <- c(mean_tungsten_0,mean_tungsten_100, mean_tungsten_500, mean_tungsten_1000, mean_tungsten_10000)
+
+Conc_tungsten <- factor(c(rep("Concentration = 0 ppm",12288),
+                          rep("Concentration = 100 ppm",12288),
+                          rep("Concentration = 500 ppm",12288),
+                          rep("Concentration = 1000 ppm",12288),
+                          rep("Concentration = 10000 ppm",12288)),
+                        levels = c("Concentration = 0 ppm",
+                                   "Concentration = 100 ppm",
+                                   "Concentration = 500 ppm",
+                                   "Concentration = 1000 ppm",
+                                   "Concentration = 10000 ppm"))
+Wavelength_tungsten <- rep(Raw_tungsten_0$Wavelength,5)
+
+Tungsten_mval <- data.frame(Wavelength_tungsten, Tungsten_Intensity_mval,Conc_tungsten) # Wavelength and Conc are in previous block code
+colnames(Tungsten_mval) <- c("Wavelength","Intensity","Conc")
+
+```
+
+## Data analysis 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=6, fig.width=14}
+
+# select certain ranges of the wavelength
+Tungsten_mval2 <- Tungsten_Data_mval[which(Tungsten_Data_mval$Wavelength>=200 & Tungsten_Data_mval$Wavelength<=350),] 
+w_concentration <- c(0,100,500,1000,10000)
+
+
+w_mean_intensity <- t(Tungsten_mval2)
+w_cnames <- w_mean_intensity[1,]
+w_mean_intensity <- w_mean_intensity[-1,] # remove the row with wavelength
+colnames(w_mean_intensity) <- w_cnames # make first row to be the column name
+Tungsten_mval_final <- data.frame(w_concentration, w_mean_intensity=I(w_mean_intensity)) # add the concentration column but in two different matrix form using I()
+
+
+
+tungsten.plsr <- plsr(w_concentration ~ w_mean_intensity, ncomp = 3, data = Tungsten_mval_final, validation = "LOO")
+
+summary(tungsten.plsr)
+
+tungsten.par <- par(mfrow=c(1,2))
+w_rmsep <- plot(RMSEP(tungsten.plsr), legendpos = "topright") #Root Mean Square Error of the Prediction
+w_predict_meas <- plot(tungsten.plsr, ncomp = 2, asp = 1, line = TRUE) # predicted vs. measured plot
+par(tungsten.par)
+
+```
+
