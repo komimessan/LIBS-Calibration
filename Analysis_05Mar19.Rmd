@@ -199,9 +199,9 @@ cali_plot_pb <- ggplot(lead_uni_data, aes(x=Concentration, y=Mean_I)) +
   geom_errorbar(aes(ymin=Mean_I-sd, ymax=Mean_I+sd), colour="black") +
   scale_x_continuous(label= comma, breaks=c(10,1000,100000), trans = "log10")+
   stat_smooth(method = "lm", col = "red", se= FALSE) +
-  xlab("Log(concentration of Pb at 280.2 nm in ppm)") +
+  xlab("Log(Concentration of Pb at 280.2 nm in ppm)") +
   ylab("Intensity (a.u.)") +
-  geom_label(x=0.2, y=500, label="R = 0.6647") + 
+  geom_label(x=0.2, y=500, label="R^{2}==0.6647", parse = TRUE) + 
   theme_bw() + p
 
 cali_plot_pb
@@ -332,9 +332,9 @@ cali_plot_zn <- ggplot(zinc_uni_data, aes(x=Concentration, y=Mean_I)) +
   geom_errorbar(aes(ymin=Mean_I-sd, ymax=Mean_I+sd), colour="black") +
   scale_x_continuous(label= comma) +
   stat_smooth(method = "lm", col = "red", se= FALSE) +
-  xlab("concentration of Zn at 492.4 nm in ppm") +
+  xlab("Concentration of Zn at 492.4 nm in ppm") +
   ylab("Intensity (a.u.)") +
-  geom_label(x=10, y=60, label="R = 0.6549") + 
+  geom_label(x=10, y=60, label="R^2 == 0.6549", parse = TRUE) + 
   theme_bw() + p
 
 cali_plot_zn
@@ -456,9 +456,9 @@ cali_plot_sb <- ggplot(antimony_uni_data, aes(x=Concentration, y=Mean_I)) +
   geom_errorbar(aes(ymin=Mean_I-sd, ymax=Mean_I+sd), colour="black") +
   scale_x_continuous(label= comma) +
   stat_smooth(method = "lm", col = "red", se= FALSE) +
-  xlab("concentration of Sb at 276.9 nm in ppm") +
+  xlab("Concentration of Sb at 276.9 nm in ppm") +
   ylab("Intensity (a.u.)") +
-  geom_label(x=10, y=75, label="R = 0.8994") + 
+  geom_label(x=10, y=75, label="R^2 == 0.8994", parse = TRUE) + 
   theme_bw() + p
 
 cali_plot_sb
@@ -583,9 +583,9 @@ cali_plot_w <- ggplot(tungsten_uni_data, aes(x=Concentration, y=Mean_I)) +
   geom_errorbar(aes(ymin=Mean_I-sd, ymax=Mean_I+sd), colour="black") +
   scale_x_continuous(label= comma, trans = "log10") +
   stat_smooth(method = "lm", col = "red", se= FALSE) +
-  xlab("Log(concentration of W at 212.1 nm in ppm)") +
+  xlab("Log(Concentration of W at 212.1 nm in ppm)") +
   ylab("Intensity (a.u.)") +
-  geom_label(x=0, y=75, label="R = 0.8043") + 
+  geom_label(x=0.1, y=75, label="R^2 == 0.8043", parse = TRUE) + 
   theme_bw() + p
 
 cali_plot_w
