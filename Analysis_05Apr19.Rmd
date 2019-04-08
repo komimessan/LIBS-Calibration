@@ -151,13 +151,21 @@ pb_mean_intensity <- pb_mean_intensity[-1,] # remove the row with wavelength
 colnames(pb_mean_intensity) <- pb_cnames # make first row to be the column name
 Lead_mval_final <- data.frame(pb_concentration, pb_mean_intensity=I(pb_mean_intensity)) # add the concentration column but in two different matrix form using I()
 
-lead.plsr <- plsr(pb_concentration ~ pb_mean_intensity, ncomp = 3, data = Lead_mval_final, validation = "LOO")
+lead.plsr <- plsr(pb_concentration ~ pb_mean_intensity, ncomp = 4, data = Lead_mval_final)
+
+lead.plsr <- plsr(pb_concentration ~ msc(pb_mean_intensity), ncomp = 4, data = Lead_mval_final,validation = "LOO")
+
+
 
 summary(lead.plsr)
 
 lead.par <- par(mfrow=c(1,2))
-pb_rmsep <- plot(RMSEP(lead.plsr), legendpos = "topright") #Root Mean Square Error of the Prediction
-pb_predict_meas <- plot(lead.plsr, ncomp = 2, asp = 1, line = TRUE) # predicted vs. measured plot
+pb_rmsep <- plot(RMSEP(lead.plsr),xlab="Number of Components",font.axis=4,font.lab=2,main="", type = "o") #Root Mean Square Error of the Prediction
+pb_predict_meas <- plot(lead.plsr, ncomp = 2, asp = 1, line = TRUE,
+                        xlab="Measured Concentration", 
+                        ylab="Predicted Concentration",
+                        font.axis=4,font.lab=2, main="") # predicted vs. measured plot
+text(1,80000,expression(R^{2} == "0.9047"))
 par(lead.par)
 
 ```
@@ -229,13 +237,19 @@ Zinc_mval_final <- data.frame(zn_concentration, zn_mean_intensity=I(zn_mean_inte
 
 
 
-zinc.plsr <- plsr(zn_concentration ~ zn_mean_intensity, ncomp = 3, data = Zinc_mval_final, validation = "LOO")
+#zinc.plsr <- plsr(zn_concentration ~ zn_mean_intensity, ncomp = 3, data = Zinc_mval_final, validation = "LOO")
+
+zinc.plsr <- plsr(zn_concentration ~ zn_mean_intensity, ncomp = 4, data = Zinc_mval_final)
 
 summary(zinc.plsr)
 
 zinc.par <- par(mfrow=c(1,2))
-zn_rmsep <- plot(RMSEP(zinc.plsr), legendpos = "topright") #Root Mean Square Error of the Prediction
-zn_predict_meas <- plot(zinc.plsr, ncomp = 2, asp = 1, line = TRUE) # predicted vs. measured plot
+zn_rmsep <- plot(RMSEP(zinc.plsr),xlab="Number of Components",font.axis=4,font.lab=2,main="", type = "o") #Root Mean Square Error of the Prediction
+zn_predict_meas <- plot(zinc.plsr, ncomp = 3, asp = 1, line = TRUE,
+                        xlab="Measured Concentration", 
+                        ylab="Predicted Concentration",
+                        font.axis=4,font.lab=2, main="") # predicted vs. measured plot
+text(0,700,expression(R^{2} == "0.8854"))
 par(zinc.par)
 
 ```
@@ -309,13 +323,19 @@ Antimony_mval_final <- data.frame(sb_concentration, sb_mean_intensity=I(sb_mean_
 
 
 
-antimony.plsr <- plsr(sb_concentration ~ sb_mean_intensity, ncomp = 3, data = Antimony_mval_final, validation = "LOO")
+# antimony.plsr <- plsr(sb_concentration ~ sb_mean_intensity, ncomp = 3, data = Antimony_mval_final, validation = "LOO")
+
+antimony.plsr <- plsr(sb_concentration ~ sb_mean_intensity, ncomp = 4, data = Antimony_mval_final)
 
 summary(antimony.plsr)
 
 antimony.par <- par(mfrow=c(1,2))
-sb_rmsep <- plot(RMSEP(antimony.plsr), legendpos = "topright") #Root Mean Square Error of the Prediction
-sb_predict_meas <- plot(antimony.plsr, ncomp = 3, asp = 1, line = TRUE) # predicted vs. measured plot
+sb_rmsep <- plot(RMSEP(antimony.plsr), xlab="Number of Components",font.axis=4,font.lab=2,main="", type = "o") #Root Mean Square Error of the Prediction
+sb_predict_meas <- plot(antimony.plsr, ncomp = 3, asp = 1, line = TRUE,
+                        xlab="Measured Concentration", 
+                        ylab="Predicted Concentration",
+                        font.axis=4,font.lab=2, main="") # predicted vs. measured plot
+text(0,900,expression(R^{2} == "0.9973"))
 par(antimony.par)
 
 ```
@@ -387,13 +407,19 @@ Tungsten_mval_final <- data.frame(w_concentration, w_mean_intensity=I(w_mean_int
 
 
 
-tungsten.plsr <- plsr(w_concentration ~ w_mean_intensity, ncomp = 3, data = Tungsten_mval_final, validation = "LOO")
+# tungsten.plsr <- plsr(w_concentration ~ w_mean_intensity, ncomp = 3, data = Tungsten_mval_final, validation = "LOO")
+
+tungsten.plsr <- plsr(w_concentration ~ w_mean_intensity, ncomp = 4, data = Tungsten_mval_final)
 
 summary(tungsten.plsr)
 
 tungsten.par <- par(mfrow=c(1,2))
-w_rmsep <- plot(RMSEP(tungsten.plsr), legendpos = "topright") #Root Mean Square Error of the Prediction
-w_predict_meas <- plot(tungsten.plsr, ncomp = 2, asp = 1, line = TRUE) # predicted vs. measured plot
+w_rmsep <- plot(RMSEP(tungsten.plsr), xlab="Number of Components",font.axis=4,font.lab=2,main="", type = "o") #Root Mean Square Error of the Prediction
+w_predict_meas <- plot(tungsten.plsr, ncomp = 2, asp = 1, line = TRUE,
+                       xlab="Measured Concentration", 
+                        ylab="Predicted Concentration",
+                        font.axis=4,font.lab=2, main="") # predicted vs. measured plot
+text(0,9500,expression(R^{2} == "0.9945"))
 par(tungsten.par)
 
 ```
