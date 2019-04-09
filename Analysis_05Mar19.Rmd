@@ -319,7 +319,7 @@ zinc_uni_data <- data.frame(c(m_zinc_0,m_zinc_100,m_zinc_250,
                               m_zinc_500,m_zinc_1000),
                             c(sd_zinc_0,sd_zinc_100,sd_zinc_250,
                               sd_zinc_500,sd_zinc_1000),
-                            c(0,100,250,500,1000))
+                            c(1,100,250,500,1000))
 colnames(zinc_uni_data) <- c("Mean_I","sd","Concentration")
 
 ## Plotting
@@ -332,7 +332,7 @@ cali_plot_zn <- ggplot(zinc_uni_data, aes(x=Concentration, y=Mean_I)) +
   geom_errorbar(aes(ymin=Mean_I-sd, ymax=Mean_I+sd), colour="black") +
   scale_x_continuous(label= comma) +
   stat_smooth(method = "lm", col = "red", se= FALSE) +
-  xlab("Concentration of Zn at 492.4 nm in ppm") +
+  xlab("Concentration of Zn at 213.9 nm in ppm") +
   ylab("Intensity (a.u.)") +
   geom_label(x=10, y=60, label="R^2 == 0.6549", parse = TRUE) + 
   theme_bw() + p
@@ -443,7 +443,7 @@ antimony_uni_data <- data.frame(c(m_antimony_0,m_antimony_100,m_antimony_250,
                               m_antimony_500,m_antimony_1000),
                             c(sd_antimony_0,sd_antimony_100,sd_antimony_250,
                               sd_antimony_500,sd_antimony_1000),
-                            c(0,100,250,500,1000))
+                            c(1,100,250,500,1000))
 colnames(antimony_uni_data) <- c("Mean_I","sd","Concentration")
 
 ## Plotting
@@ -592,4 +592,59 @@ cali_plot_w
 
 ```
 
+
+Now we plot all univariate data together
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5, fig.width=8}
+
+Elements <- factor(
+  c(rep("Lead at 280.2 nm",5),rep("Zinc at 213.9 nm",5),rep("Antimony at 276.9 nm",5),rep("Tungsten at 212.1 nm",5)),
+  levels = c("Lead at 280.2 nm","Zinc at 213.9 nm","Antimony at 276.9 nm","Tungsten at 212.1 nm"))
+  
+All_uni_data <- data.frame(rbind(lead_uni_data,zinc_uni_data,
+                      antimony_uni_data,tungsten_uni_data),
+                      Elements)
+
+dat_text <- data.frame(
+  label = c("R^2 == 0.6647","R^2 == 0.6549","R^2 == 0.8994","R^2 == 0.8043"),
+  Elements   = c("Lead at 280.2 nm", "Zinc at 213.9 nm", "Antimony at 276.9 nm","Tungsten at 212.1 nm"),
+  x     = c(10,5,5,5),
+  y     = c(500, 60, 75,80)
+)
+
+cali_plot1 <- ggplot(All_uni_data, aes(x=Concentration, y=Mean_I)) +
+  geom_point(size=2) +
+  geom_errorbar(aes(ymin=Mean_I-sd, ymax=Mean_I+sd), colour="black") +
+  scale_x_continuous(label= comma, trans = "log10") +
+  stat_smooth(method = "lm", col = "red", se= FALSE) +
+  facet_wrap(~Elements,ncol=2,scales = "free") +
+  geom_label(data = dat_text, mapping = aes(x = x, y = y, label = label),
+             parse = TRUE) +
+  xlab("Log(Concentration in ppm)") +
+  ylab("Intensity (a.u.)") +
+  theme_classic() + p
+
+cali_plot1
+
+
+dat_text2 <- data.frame(
+  label = c("R^2 == 0.6647","R^2 == 0.6549","R^2 == 0.8994","R^2 == 0.8043"),
+  Elements   = c("Lead at 280.2 nm", "Zinc at 213.9 nm", "Antimony at 276.9 nm","Tungsten at 212.1 nm"),
+  x     = c(10,100,1000,10000),
+  y     = c(300,300, 300,300)
+)
+
+cali_plot2 <- ggplot(All_uni_data, aes(x=Concentration, y=Mean_I,colour=Elements))+
+  geom_point(size=2) +
+  stat_smooth(method = "lm", se= FALSE) +
+  scale_x_continuous(label= comma, trans = "log10") +
+  geom_label(data = dat_text2, mapping = aes(x = x, y = y, label = label),
+             parse = TRUE, show.legend = F ) +
+  xlab("Log(Concentration in ppm)") +
+  ylab("Intensity (a.u.)") +
+  theme_classic() + theme(legend.title=element_blank()) + p  
+
+cali_plot2
+
+````
 
