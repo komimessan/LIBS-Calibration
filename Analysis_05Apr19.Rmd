@@ -424,3 +424,17 @@ par(tungsten.par)
 
 ```
 
+```{r}
+
+openxlsx::write.xlsx(Lead_Data_mval,"Lead_Data_mval.xlsx",
+                     sheetName = "Lead", colNames = TRUE)
+openxlsx::write.xlsx(Zinc_Data_mval,"Zinc_Data_mval.xlsx",
+                     sheetName = "Zinc", colNames = TRUE)
+openxlsx::write.xlsx(Lead_Data_mval,"Antimony_Data_mval.xlsx",
+                     sheetName = "Antimony", colNames = TRUE)
+openxlsx::write.xlsx(Lead_Data_mval,"Tungsten_mval.xlsx",
+                     sheetName = "Tungsten", colNames = TRUE)
+
+```
+
+

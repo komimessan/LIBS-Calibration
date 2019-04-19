@@ -1,0 +1,118 @@
+---
+title: "Concentration Prediction for Ft. Benning Soils"
+author: "Komi Messan"
+date: "April 19, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# All packages needed
+library(ggplot2)
+library(latex2exp)
+library(DT) # for datatable
+library(pls)  # For Principal Component Regression (PCR) and Partial Least Squares Regression (PLSR)
+library(openxlsx)
+```
+
+
+ 
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+# First we create functions to perform average calculation and also the rsquares given appropriate data
+
+average <- function(Raw_data){
+  isPositive <- function(x) x>=0 # function to extract the positive value
+  se <- function(x) sqrt(var(x)/length(x)) # standard error
+  n <- dim(Raw_data)[1] # find the length of the data
+  (v_m <- rep(NA, n)) # create an empty vector of length n for the mean
+  (v_sd <- rep(NA, n)) # create an empty vector of length n for the sd
+  
+  for (i in 1:n){
+    v_m[i] <- mean(Filter(isPositive, as.numeric(Raw_data[i,-1])))
+    v_sd[i] <- sd(Filter(isPositive, as.numeric(Raw_data[i,-1])))
+  }
+  v_m[is.na(v_m)] <- 0
+  v_sd[is.na(v_sd)] <- 0
+   return(data.frame(v_m,v_sd))
+}
+
+
+Rvalues <- function(Average_raw_data, concentration){
+  
+L <- length(Average_raw_data[,1])# length of the intensity data
+concentration <- concentration
+# create an empty vector for the slope, the intercept and Rsquare values
+slope <- numeric(0L)
+intercept <- numeric(0L)
+Rsquare <- numeric(0L)
+
+# Loop through the entire data and create a linear model where the mean intensity is the dependent variable and the theoretical concentration is the independent variable. 
+for (i in 1:L){
+  linear_relation <- lm(as.numeric(Average_raw_data[i,2:6])~concentration)
+  sum_relation <- summary(linear_relation)
+  
+  #extract coefficients from linear regression
+  slope <- c(slope,linear_relation$coefficients[2])
+  intercept <- c(intercept,linear_relation$coefficients[1])
+  Rsquare <- c(Rsquare,sum_relation$r.squared)
+}  
+  
+ result <- data.frame(Average_raw_data[,1], slope,intercept, Rsquare)
+ colnames(result) <- c("Wavelength","slope","intercept","Rsquare")
+ return(result)
+}
+
+
+######## For plotting
+
+black.bold.text1 <- element_text(face = "bold", color = "black",size=18) # x and y axis
+black.bold.text2 <- element_text(face = "bold", color = "black",size=18) # title
+
+p<-theme(axis.text.x = element_text(face="bold", color="black", size=16),
+         axis.text.y = element_text(face="bold", color="black", size=16),
+         title=black.bold.text2,axis.title = black.bold.text1, legend.position = "bottom",
+         legend.text = element_text(size=18),strip.text.x = element_text(face="bold",size=18))
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+#Read in mean known metals data for PLSR analysis
+Lead_Data_mval <- openxlsx::read.xlsx("Lead_Data_mval.xlsx", sheet="Lead", colNames = TRUE)
+Zinc_Data_mval <- openxlsx::read.xlsx("Zinc_Data_mval.xlsx", sheet="Zinc", colNames = TRUE)
+Antimony_Data_mval <- openxlsx::read.xlsx("Antimony_Data_mval.xlsx", sheet="Antimony", colNames = TRUE)
+Tungsten_Data_mval <- openxlsx::read.xlsx("Tungsten_Data_mval.xlsx", sheet="Tungsten", colNames = TRUE)
+
+```
+
+
+```{r}
+## Read in Text files data from 1 to 96
+setwd("C:/Users/RDCRLKSM/Documents/Projects/LIBS-Jay/Analysis/LIBS-Calibration/B_Soil")
+
+All_B_Soil <- list.files()
+
+B_soil_av <- function(n_files){
+  b_soil <-read.delim2(AllB_Soil[n_files], header = TRUE, sep = "\t", dec = ".", skip=9)
+  average(b_soil)$v_m
+}
+
+setwd("C:/Users/RDCRLKSM/Documents/Projects/LIBS-Jay/Analysis/LIBS-Calibration/B_Soil")
+ptm <- proc.time()
+B_mean <- sapply(1:length(AllB_Soil), B_soil_av)
+proc.time() - ptm
+
+ # user  system elapsed 
+ # 136.02    0.18  136.28 
+
+```
+
+
+
